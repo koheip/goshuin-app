@@ -1,7 +1,8 @@
 {
   "expo": {
-    "name": "goshuin-app",
+    "name": "御朱印帳",
     "slug": "goshuin-app",
+    "scheme": "goshuinapp",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -11,7 +12,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#F6F1E7",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
@@ -20,6 +21,29 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "experiments": {
+      "typedRoutes": true
+    },
+    "plugins": [
+      "expo-router",
+      "expo-status-bar",
+      "expo-sqlite",
+      "expo-font",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#F6F1E7"
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "御朱印を撮影して記録するためにカメラを使用します。",
+          "photosPermission": "撮影済みの御朱印の写真を選んで記録するために写真ライブラリを使用します。",
+          "microphonePermission": false
+        }
+      ]
+    ]
   }
 }

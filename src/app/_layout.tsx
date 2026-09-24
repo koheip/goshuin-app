@@ -1,0 +1,53 @@
+import {
+  MPLUSRounded1c_500Medium,
+  MPLUSRounded1c_700Bold,
+  MPLUSRounded1c_800ExtraBold,
+  MPLUSRounded1c_900Black,
+  useFonts,
+} from '@expo-google-fonts/m-plus-rounded-1c';
+import { Stack } from 'expo-router';
+import * as SplashScreen from 'expo-splash-screen';
+import { SQLiteProvider } from 'expo-sqlite';
+import { StatusBar } from 'expo-status-bar';
+import { useEffect } from 'react';
+
+import { migrateDbIfNeeded } from '@/db/migrate';
+import { colors, fonts } from '@/theme';
+
+SplashScreen.preventAutoHideAsync();
+
+export default function RootLayout() {
+  const [loaded, error] = useFonts({
+    MPLUSRounded1c_500Medium,
+    MPLUSRounded1c_700Bold,
+    MPLUSRounded1c_800ExtraBold,
+    MPLUSRounded1c_900Black,
+  });
+
+  useEffect(() => {
+    if (loaded || error) SplashScreen.hideAsync();
+  }, [loaded, error]);
+
+  // フォントの読み込みに失敗しても、標準の書体で起動を続ける
+  if (!loaded && !error) return null;
+
+  return (
+    <SQLiteProvider databaseName="goshuin.db" onInit={migrateDbIfNeeded}>
+      <StatusBar style="dark" />
+      <Stack
+        screenOptions={{
+          headerStyle: { backgroundColor: colors.paper },
+          headerTintColor: colors.ink,
+          headerTitleStyle: { fontFamily: fonts.display, color: colors.ink },
+          headerShadowVisible: false,
+          contentStyle: { backgroundColor: colors.paper },
+          headerBackButtonDisplayMode: 'minimal',
+        }}
+      >
+        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="record" options={{ headerShown: false, presentation: 'modal' }} />
+        <Stack.Screen name="goshuin/[id]" options={{ title: '御朱印' }} />
+      </Stack>
+    </SQLiteProvider>
+  );
+}
