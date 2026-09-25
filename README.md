@@ -56,6 +56,8 @@ npx eas-cli@latest build --profile development --platform ios   # または andr
 npx expo start                                                   # 開発ビルドのアプリで開く
 ```
 
+APIキーは [.env.example](.env.example) を `.env` にコピーして入れます。「Google で探す」は `EXPO_PUBLIC_GOOGLE_PLACES_API_KEY` を入れたときだけ表示されます。
+
 Android の地図には Google Maps SDK for Android の APIキーが必要です。環境変数 `GOOGLE_MAPS_ANDROID_API_KEY` に入れると [app.config.ts](app.config.ts) が設定に加えます（EAS では Environment variables に登録）。
 
 ### 開発用コマンド

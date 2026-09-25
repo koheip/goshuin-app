@@ -16,12 +16,14 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { LocationButton } from '@/components/LocationButton';
+import { PlaceSearch } from '@/components/PlaceSearch';
 import { PlaceMark } from '@/components/shrine';
 import { Button, Chip, ChipGroup, Field, FieldLabel, Stepper } from '@/components/ui';
 import { createShrine, searchShrines, type ShrineWithStats } from '@/db/repo';
 import { PLACE_KIND_LABEL, type PlaceKind } from '@/db/types';
 import { formatDot } from '@/lib/dates';
 import type { Coords } from '@/lib/location';
+import { placesSearchEnabled, type PlaceCandidate } from '@/lib/places';
 import { useDraft } from '@/record/draft';
 import { colors, radius, fonts } from '@/theme';
 
@@ -38,6 +40,7 @@ export default function SelectShrineScreen() {
   const [newPrefecture, setNewPrefecture] = useState('');
   const [newKind, setNewKind] = useState<PlaceKind>('shrine');
   const [newCoords, setNewCoords] = useState<Coords | null>(null);
+  const [newPlaceId, setNewPlaceId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -57,7 +60,7 @@ export default function SelectShrineScreen() {
     if (!newName.trim()) return;
     setSaving(true);
     try {
-      const shrine = await createShrine(db, { name: newName, kana: newKana, prefecture: newPrefecture, kind: newKind, ...newCoords });
+      const shrine = await createShrine(db, { name: newName, kana: newKana, prefecture: newPrefecture, kind: newKind, placeId: newPlaceId, ...newCoords });
       update({ shrine: { id: shrine.id, name: shrine.name, kind: shrine.kind } });
       setAdding(false);
       setNewName('');
@@ -65,6 +68,7 @@ export default function SelectShrineScreen() {
       setNewPrefecture('');
       setNewKind('shrine');
       setNewCoords(null);
+      setNewPlaceId(null);
       setQuery('');
       setResults(await searchShrines(db, ''));
     } catch (e) {
@@ -72,6 +76,12 @@ export default function SelectShrineScreen() {
     } finally {
       setSaving(false);
     }
+  }
+
+  function pickPlace(place: PlaceCandidate) {
+    setNewName(place.name);
+    setNewKind(place.kind);
+    setNewPlaceId(place.placeId);
   }
 
   const header = (
@@ -100,6 +110,16 @@ export default function SelectShrineScreen() {
           <Text style={styles.addTitle}>
             {noShrinesYet ? '最初の神社・お寺を追加しましょう' : '神社・お寺を追加'}
           </Text>
+          {placesSearchEnabled && <PlaceSearch onPick={pickPlace} />}
+          {newPlaceId && (
+            <View style={styles.linked}>
+              <Ionicons name="link" size={16} color={colors.accent} />
+              <Text style={styles.linkedText}>Google マップの場所とつなげました</Text>
+              <Pressable accessibilityRole="button" hitSlop={8} onPress={() => setNewPlaceId(null)}>
+                <Text style={styles.linkedClear}>外す</Text>
+              </Pressable>
+            </View>
+          )}
           <View style={styles.kindGroup}>
             <FieldLabel>種類</FieldLabel>
             <ChipGroup>
@@ -271,6 +291,9 @@ const styles = StyleSheet.create({
   addTitle: { fontSize: 15, fontFamily: fonts.bold, color: colors.ink },
   addActions: { flexDirection: 'row', gap: 10 },
   kindGroup: { gap: 8 },
+  linked: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  linkedText: { flex: 1, fontFamily: fonts.regular, fontSize: 12, color: colors.inkSoft },
+  linkedClear: { fontFamily: fonts.regular, fontSize: 12, color: colors.accent },
   addLink: { minHeight: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
   addLinkLabel: { fontSize: 14, fontFamily: fonts.regular, color: colors.accent },
   bottomBar: {
