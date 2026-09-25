@@ -161,3 +161,38 @@ export async function deleteGoshuin(db: SQLiteDatabase, goshuinId: string): Prom
   });
   return row.imageFile;
 }
+
+export type EntryUpdate = {
+  visitedOn: string;
+  weather: string | null;
+  companions: string | null;
+  omikuji: string | null;
+  memo: string | null;
+  kind: GoshuinKind;
+  fee: number | null;
+};
+
+// 参拝の内容（同じ参拝の御朱印すべてに共通）と、この御朱印の種類・初穂料を書き換える
+export async function updateEntry(db: SQLiteDatabase, goshuinId: string, input: EntryUpdate): Promise<void> {
+  const now = new Date().toISOString();
+  await db.withTransactionAsync(async () => {
+    await db.runAsync(
+      `UPDATE visits SET visited_on = ?, weather = ?, companions = ?, omikuji = ?, memo = ?, updated_at = ?
+       WHERE id = (SELECT visit_id FROM goshuin WHERE id = ?)`,
+      input.visitedOn,
+      input.weather,
+      input.companions,
+      input.omikuji,
+      input.memo,
+      now,
+      goshuinId,
+    );
+    await db.runAsync(
+      'UPDATE goshuin SET kind = ?, fee = ?, updated_at = ? WHERE id = ?',
+      input.kind,
+      input.fee,
+      now,
+      goshuinId,
+    );
+  });
+}

@@ -1,7 +1,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { router, useLocalSearchParams } from 'expo-router';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
-import { useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { Alert, Image, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { Shimenawa, Torii } from '@/components/shrine';
@@ -19,9 +19,18 @@ export default function GoshuinDetailScreen() {
   const [entry, setEntry] = useState<GoshuinEntry | null | undefined>(undefined);
   const [width, setWidth] = useState(0);
 
-  useEffect(() => {
-    getEntry(db, id).then(setEntry);
-  }, [db, id]);
+  // 編集画面から戻ったときにも最新の内容を読み直す
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+      getEntry(db, id).then((row) => {
+        if (active) setEntry(row);
+      });
+      return () => {
+        active = false;
+      };
+    }, [db, id]),
+  );
 
   function confirmDelete() {
     Alert.alert('この御朱印を削除しますか？', '端末から写真も削除され、元に戻せません。', [
@@ -118,7 +127,14 @@ export default function GoshuinDetailScreen() {
         </View>
       ) : null}
 
-      <Button label="この御朱印を削除" variant="secondary" onPress={confirmDelete} style={styles.delete} />
+      <Button
+        label="記録を編集"
+        variant="secondary"
+        onPress={() => router.push({ pathname: '/goshuin/edit/[id]', params: { id } })}
+        icon={<Ionicons name="create-outline" size={18} color={colors.ink} />}
+        style={styles.delete}
+      />
+      <Button label="この御朱印を削除" variant="secondary" onPress={confirmDelete} />
     </ScrollView>
   );
 }

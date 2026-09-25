@@ -47,6 +47,7 @@ export default function RootLayout() {
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="record" options={{ headerShown: false, presentation: 'modal' }} />
         <Stack.Screen name="goshuin/[id]" options={{ title: '御朱印' }} />
+        <Stack.Screen name="goshuin/edit/[id]" options={{ title: '記録を編集' }} />
       </Stack>
     </SQLiteProvider>
   );
