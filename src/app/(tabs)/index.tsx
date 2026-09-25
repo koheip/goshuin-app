@@ -6,9 +6,11 @@ import { useCallback, useState } from 'react';
 import { Image, ImageBackground, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { BLESSINGS, type BlessingId, type EquipmentId } from '@/avatar/catalog';
+import { PixelAvatar } from '@/components/AvatarPreview';
 import { Sakura, Torii } from '@/components/shrine';
 import { GlassCard, PixelWordmark, Sparkle } from '@/components/ui';
-import { getCurrentBook, listBookEntries } from '@/db/repo';
+import { getAvatarPreferences, getCurrentBook, listBookEntries } from '@/db/repo';
 import type { Book, GoshuinEntry } from '@/db/types';
 import { formatDot } from '@/lib/dates';
 import { imageUri } from '@/lib/images';
@@ -20,16 +22,21 @@ export default function HomeScreen() {
   const db = useSQLiteContext();
   const [book, setBook] = useState<Book | null>(null);
   const [latest, setLatest] = useState<GoshuinEntry | null | undefined>(undefined);
+  const [avatar, setAvatar] = useState<{ blessing: BlessingId; equipment: EquipmentId[] }>({ blessing: 'amaterasu', equipment: ['magatama', 'omamori', 'shide', 'haori'] });
 
   useFocusEffect(
     useCallback(() => {
       let active = true;
       (async () => {
         const current = await getCurrentBook(db);
-        const entries = await listBookEntries(db, current.id);
+        const [entries, preferences] = await Promise.all([listBookEntries(db, current.id), getAvatarPreferences(db)]);
         if (!active) return;
         setBook(current);
         setLatest(entries.at(-1) ?? null);
+        setAvatar({
+          blessing: (BLESSINGS.some((item) => item.id === preferences.blessing) ? preferences.blessing : 'amaterasu') as BlessingId,
+          equipment: preferences.equipment.filter((id): id is EquipmentId => ['magatama', 'omamori', 'shide', 'fox-mask', 'kagura-bell', 'sakaki', 'haori'].includes(id)),
+        });
       })();
       return () => { active = false; };
     }, [db]),
@@ -57,7 +64,12 @@ export default function HomeScreen() {
               <Sparkle size={17} color={colors.violet} style={styles.copySparkle} />
             </View>
 
-            <View style={styles.spacer} />
+            <View style={styles.spacer}>
+              <Pressable accessibilityRole="button" accessibilityLabel="マイアバターを編集する" onPress={() => router.push('/avatar')} style={({ pressed }) => [styles.homeAvatar, pressed && styles.pressed]}>
+                <PixelAvatar blessing={BLESSINGS.find((item) => item.id === avatar.blessing) ?? BLESSINGS[0]} equipment={avatar.equipment} size={112} />
+                <View style={styles.avatarLabel}><Text style={styles.avatarLabelText}>MY AVATAR</Text><Ionicons name="chevron-forward" size={12} color="#FFFFFF" /></View>
+              </Pressable>
+            </View>
 
             <Pressable accessibilityRole="button" accessibilityLabel="参拝を記録する" onPress={() => router.push('/record')} style={({ pressed }) => [styles.questionPill, pressed && styles.pressed]}>
               <View style={styles.questionIcon}><Torii size={27} /></View>
@@ -129,7 +141,8 @@ const styles = StyleSheet.create({
   copyBlock: { marginTop: 38, alignSelf: 'flex-start', position: 'relative', paddingLeft: 14 },
   copyAccent: { position: 'absolute', left: 0, top: 3, bottom: 3, width: 4, borderRadius: 2, backgroundColor: colors.accent },
   copy: { color: colors.ink, fontFamily: fonts.displayHeavy, fontSize: 19, lineHeight: 29, textShadowColor: 'rgba(255,255,255,0.9)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 8 },
-  copySparkle: { position: 'absolute', right: -22, top: 1 }, spacer: { flex: 1, minHeight: 210 },
+  copySparkle: { position: 'absolute', right: -22, top: 1 }, spacer: { flex: 1, minHeight: 210, justifyContent: 'flex-end', alignItems: 'flex-end' },
+  homeAvatar: { marginRight: -4, marginBottom: 6, alignItems: 'center' }, avatarLabel: { marginTop: -13, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, backgroundColor: colors.accent, flexDirection: 'row', alignItems: 'center', gap: 3, boxShadow: glow.soft }, avatarLabelText: { fontFamily: fonts.bold, fontSize: 8, color: '#FFFFFF', letterSpacing: .7 },
   questionPill: { minHeight: 58, padding: 7, borderRadius: 29, backgroundColor: 'rgba(255,255,255,0.9)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.95)', flexDirection: 'row', alignItems: 'center', gap: 9, boxShadow: glow.pink },
   questionIcon: { width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.accentTint },
   questionText: { flex: 1, fontFamily: fonts.bold, fontSize: 12, color: colors.ink }, arrowCircle: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center' },

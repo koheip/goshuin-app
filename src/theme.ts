@@ -69,4 +69,5 @@ export const glass = {
 export const glow = {
   soft: '0px 6px 18px rgba(183, 123, 255, 0.22)',
   pink: '0px 8px 20px rgba(255, 111, 177, 0.38)',
+  strong: '0px 14px 34px rgba(114, 72, 189, 0.34)',
 };

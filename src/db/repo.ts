@@ -14,6 +14,36 @@ export type JourneyStats = {
   goshuinCount: number;
 };
 
+export type AvatarPreferences = {
+  blessing: string;
+  equipment: string[];
+};
+
+export async function getAvatarPreferences(db: SQLiteDatabase): Promise<AvatarPreferences> {
+  const row = await db.getFirstAsync<{ blessing: string; equipmentJson: string }>(
+    'SELECT blessing, equipment_json AS equipmentJson FROM avatar_preferences WHERE id = 1',
+  );
+  if (!row) return { blessing: 'amaterasu', equipment: ['magatama', 'omamori', 'shide', 'haori'] };
+  try {
+    const equipment = JSON.parse(row.equipmentJson);
+      return { blessing: row.blessing, equipment: Array.isArray(equipment) ? equipment : [] };
+  } catch {
+    return { blessing: row.blessing, equipment: [] };
+  }
+}
+
+export async function saveAvatarPreferences(db: SQLiteDatabase, preferences: AvatarPreferences): Promise<void> {
+  await db.runAsync(
+    `INSERT INTO avatar_preferences (id, blessing, equipment_json, updated_at)
+     VALUES (1, ?, ?, ?)
+     ON CONFLICT(id) DO UPDATE SET blessing = excluded.blessing,
+       equipment_json = excluded.equipment_json, updated_at = excluded.updated_at`,
+    preferences.blessing,
+    JSON.stringify(preferences.equipment),
+    new Date().toISOString(),
+  );
+}
+
 // HOME・図鑑などで使う、これまでのめぐり全体の集計
 export async function getJourneyStats(db: SQLiteDatabase): Promise<JourneyStats> {
   return (

@@ -50,10 +50,16 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="avatar"
+        options={{
+          title: 'ME',
+          tabBarIcon: ({ color, size }) => <Ionicons name="person" size={size} color={color} />,
+        }}
+      />
+      <Tabs.Screen
         name="record"
         options={{
-          title: '記録',
-          tabBarIcon: ({ color, size }) => <Ionicons name="sparkles-outline" size={size} color={color} />,
+          href: null,
         }}
         // 記録はタブではなく、全画面のモーダルで3ステップを進める
         listeners={{

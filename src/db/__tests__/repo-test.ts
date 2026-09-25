@@ -8,6 +8,7 @@ import {
   deleteGoshuin,
   getCurrentBook,
   getEntry,
+  getAvatarPreferences,
   getJourneyStats,
   listBookEntries,
   listBooks,
@@ -16,6 +17,7 @@ import {
   reorderBook,
   saveVisit,
   searchShrines,
+  saveAvatarPreferences,
   setShrineLocation,
   startNewBook,
   updateEntry,
@@ -58,6 +60,15 @@ describe('migrateDbIfNeeded', () => {
   it('2回目以降は何もしない', async () => {
     await migrateDbIfNeeded(db);
     expect(await listBooks(db)).toHaveLength(1);
+  });
+
+  it('アバターの初期設定を作り、変更を保存できる', async () => {
+    expect(await getAvatarPreferences(db)).toEqual({
+      blessing: 'amaterasu',
+      equipment: ['magatama', 'omamori', 'shide', 'haori'],
+    });
+    await saveAvatarPreferences(db, { blessing: 'susanoo', equipment: ['magatama', 'sakaki'] });
+    expect(await getAvatarPreferences(db)).toEqual({ blessing: 'susanoo', equipment: ['magatama', 'sakaki'] });
   });
 
   it('版1のデータは、参拝日の古い順に帳の並び順を振り直す', async () => {

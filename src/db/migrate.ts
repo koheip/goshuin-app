@@ -1,7 +1,7 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 import { randomUUID } from 'expo-crypto';
 
-const LATEST_VERSION = 2;
+const LATEST_VERSION = 3;
 
 // PRAGMA user_version でスキーマの版を管理し、足りない分だけ順に適用する
 export async function migrateDbIfNeeded(db: SQLiteDatabase) {
@@ -78,6 +78,24 @@ export async function migrateDbIfNeeded(db: SQLiteDatabase) {
     // 版2：goshuin.position を「参拝の中の順番」から「帳の中の並び順」に変える
     await renumberGoshuinPositions(db);
     version = 2;
+  }
+
+  if (version === 2) {
+    await db.execAsync(`
+      CREATE TABLE IF NOT EXISTS avatar_preferences (
+        id INTEGER PRIMARY KEY NOT NULL CHECK (id = 1),
+        blessing TEXT NOT NULL DEFAULT 'amaterasu',
+        equipment_json TEXT NOT NULL DEFAULT '["magatama","omamori","shide","haori"]',
+        updated_at TEXT NOT NULL
+      );
+    `);
+    await db.runAsync(
+      'INSERT OR IGNORE INTO avatar_preferences (id, blessing, equipment_json, updated_at) VALUES (1, ?, ?, ?)',
+      'amaterasu',
+      JSON.stringify(['magatama', 'omamori', 'shide', 'haori']),
+      new Date().toISOString(),
+    );
+    version = 3;
   }
 
   await db.execAsync(`PRAGMA user_version = ${version}`);
