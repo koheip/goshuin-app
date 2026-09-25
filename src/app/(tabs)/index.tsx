@@ -115,12 +115,23 @@ export default function BookScreen() {
             <Sparkle size={10} color={colors.violet} style={styles.titleSparkleSmall} />
           </View>
         </View>
-        {book && (
-          <View style={styles.bookPill}>
-            <LinearGradient colors={gradients.primary} style={styles.bookSwatch} />
-            <Text style={styles.bookName}>{book.name}</Text>
-          </View>
-        )}
+        <View style={styles.headerActions}>
+          {book && (
+            <View style={styles.bookPill}>
+              <LinearGradient colors={gradients.primary} style={styles.bookSwatch} />
+              <Text style={styles.bookName}>{book.name}</Text>
+            </View>
+          )}
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="バックアップ"
+            hitSlop={6}
+            onPress={() => router.push('/backup')}
+            style={({ pressed }) => [styles.iconButton, pressed && { backgroundColor: colors.track }]}
+          >
+            <Ionicons name="cloud-upload-outline" size={20} color={colors.ink} />
+          </Pressable>
+        </View>
       </View>
 
       {entries === null ? null : entries.length === 0 ? (
@@ -313,6 +324,18 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   headerText: { gap: 4 },
+  headerActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  iconButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    borderWidth: 1.5,
+    borderColor: colors.lineStrong,
+    backgroundColor: colors.surface,
+    boxShadow: glow.soft,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   tagline: { fontFamily: fonts.bold, fontSize: 12, letterSpacing: 2, color: colors.accentOnTint },
   bookPill: {
     height: 40,

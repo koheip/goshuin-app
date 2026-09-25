@@ -7,7 +7,7 @@ const MAX_EDGE = 1600;
 const JPEG_QUALITY = 0.7;
 const DIR_NAME = 'goshuin';
 
-function imageDir(): Directory {
+export function imageDir(): Directory {
   const dir = new Directory(Paths.document, DIR_NAME);
   if (!dir.exists) dir.create({ idempotent: true, intermediates: true });
   return dir;
