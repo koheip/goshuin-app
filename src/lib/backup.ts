@@ -1,11 +1,14 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 import { Directory, File, Paths } from 'expo-file-system';
 
+import { renumberGoshuinPositions } from '@/db/migrate';
+
 import { imageDir } from './images';
 
 // バックアップは1つの JSON ファイル。DBの行をそのまま持ち、写真は base64 で埋め込む
 const FORMAT = 'goshuin-app-backup';
-const FORMAT_VERSION = 1;
+// 版2から goshuin.position は帳の中の並び順（版1は参拝の中の順番）
+const FORMAT_VERSION = 2;
 
 // 復元時に書き込む列。テーブルの定義（db/migrate.ts）と合わせる
 const TABLES = {
@@ -126,6 +129,7 @@ export async function restoreBackup(db: SQLiteDatabase, uri: string): Promise<nu
           await db.runAsync(sql, columns.map((c) => row[c] ?? null));
         }
       }
+      if (backup.version < 2) await renumberGoshuinPositions(db);
     });
   } catch (e) {
     written.forEach((f) => f.exists && f.delete());

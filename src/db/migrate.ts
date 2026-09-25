@@ -1,7 +1,7 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 import { randomUUID } from 'expo-crypto';
 
-const LATEST_VERSION = 1;
+const LATEST_VERSION = 2;
 
 // PRAGMA user_version でスキーマの版を管理し、足りない分だけ順に適用する
 export async function migrateDbIfNeeded(db: SQLiteDatabase) {
@@ -74,5 +74,27 @@ export async function migrateDbIfNeeded(db: SQLiteDatabase) {
     version = 1;
   }
 
+  if (version === 1) {
+    // 版2：goshuin.position を「参拝の中の順番」から「帳の中の並び順」に変える
+    await renumberGoshuinPositions(db);
+    version = 2;
+  }
+
   await db.execAsync(`PRAGMA user_version = ${version}`);
+}
+
+// 帳ごとに、参拝日の古い順で position を 0 から振り直す
+export async function renumberGoshuinPositions(db: SQLiteDatabase) {
+  await db.execAsync(`
+    UPDATE goshuin SET position = (
+      SELECT r.rn FROM (
+        SELECT g.id,
+          ROW_NUMBER() OVER (
+            PARTITION BY g.book_id ORDER BY v.visited_on, v.created_at, g.position
+          ) - 1 AS rn
+        FROM goshuin g JOIN visits v ON v.id = g.visit_id
+      ) r
+      WHERE r.id = goshuin.id
+    );
+  `);
 }

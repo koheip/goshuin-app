@@ -1,6 +1,6 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { router, useFocusEffect } from 'expo-router';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -19,7 +19,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { GoshuinPage } from '@/components/GoshuinPage';
 import { Sakura, Shimenawa, Torii } from '@/components/shrine';
 import { Button, DreamyBackground, ScreenTitle, Sparkle } from '@/components/ui';
-import { getCurrentBook, listBookEntries } from '@/db/repo';
+import { getBook, getCurrentBook, listBookEntries } from '@/db/repo';
 import { GOSHUIN_KIND_LABEL, type Book, type GoshuinEntry } from '@/db/types';
 import { formatDot } from '@/lib/dates';
 import { imageUri } from '@/lib/images';
@@ -35,21 +35,28 @@ const GRID_COLUMNS = 3;
 export default function BookScreen() {
   const db = useSQLiteContext();
   const { width: windowWidth } = useWindowDimensions();
+  // 帳の一覧から選んだ帳。なければ記録中の帳を開く
+  const { book: bookParam } = useLocalSearchParams<{ book?: string }>();
   const [book, setBook] = useState<Book | null>(null);
   const [entries, setEntries] = useState<GoshuinEntry[] | null>(null);
   const [mode, setMode] = useState<Mode>('spread');
   const [spreadIndex, setSpreadIndex] = useState(0);
   const listRef = useRef<FlatList<Spread>>(null);
   const prevCount = useRef<number | null>(null);
+  const prevBookId = useRef<string | null>(null);
   const pendingScroll = useRef<number | null>(null);
 
   useFocusEffect(
     useCallback(() => {
       let active = true;
       (async () => {
-        const current = await getCurrentBook(db);
+        const current = (bookParam ? await getBook(db, bookParam) : null) ?? (await getCurrentBook(db));
         const rows = await listBookEntries(db, current.id);
         if (!active) return;
+        if (prevBookId.current !== current.id) {
+          prevBookId.current = current.id;
+          prevCount.current = null;
+        }
         setBook(current);
         setEntries(rows);
         // 最初の表示と、新しい御朱印が増えたときは最新の見開きを開く
@@ -65,7 +72,7 @@ export default function BookScreen() {
       return () => {
         active = false;
       };
-    }, [db]),
+    }, [db, bookParam]),
   );
 
   const spreads = useMemo<Spread[]>(() => {
@@ -117,10 +124,18 @@ export default function BookScreen() {
         </View>
         <View style={styles.headerActions}>
           {book && (
-            <View style={styles.bookPill}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`${book.name}。御朱印帳を切り替える`}
+              onPress={() => router.push('/books')}
+              style={({ pressed }) => [styles.bookPill, pressed && { backgroundColor: colors.track }]}
+            >
               <LinearGradient colors={gradients.primary} style={styles.bookSwatch} />
-              <Text style={styles.bookName}>{book.name}</Text>
-            </View>
+              <Text style={styles.bookName} numberOfLines={1}>
+                {book.name}
+              </Text>
+              <Ionicons name="chevron-down" size={14} color={colors.muted} />
+            </Pressable>
           )}
           <Pressable
             accessibilityRole="button"
@@ -323,8 +338,8 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
     justifyContent: 'space-between',
   },
-  headerText: { gap: 4 },
-  headerActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  headerText: { flexShrink: 1, gap: 4 },
+  headerActions: { flexShrink: 1, flexDirection: 'row', alignItems: 'center', gap: 8 },
   iconButton: {
     width: 40,
     height: 40,
@@ -347,10 +362,11 @@ const styles = StyleSheet.create({
     boxShadow: glow.soft,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 6,
+    flexShrink: 1,
   },
   bookSwatch: { width: 14, height: 14, borderRadius: 7 },
-  bookName: { fontFamily: fonts.regular, fontSize: 13, color: colors.ink },
+  bookName: { flexShrink: 1, fontFamily: fonts.regular, fontSize: 13, color: colors.ink },
   segment: {
     marginHorizontal: 20,
     marginBottom: 16,

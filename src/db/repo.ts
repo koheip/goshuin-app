@@ -1,7 +1,7 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 import { randomUUID } from 'expo-crypto';
 
-import type { Book, GoshuinEntry, GoshuinKind, Shrine } from './types';
+import type { Book, BookWithStats, GoshuinEntry, GoshuinKind, PlaceKind, Shrine } from './types';
 
 export type ShrineWithStats = Shrine & {
   visitCount: number;
@@ -35,7 +35,15 @@ export async function searchShrines(db: SQLiteDatabase, query: string): Promise<
 
 export async function createShrine(
   db: SQLiteDatabase,
-  input: { name: string; kana?: string; prefecture?: string },
+  input: {
+    name: string;
+    kana?: string;
+    prefecture?: string;
+    kind?: PlaceKind;
+    latitude?: number | null;
+    longitude?: number | null;
+    placeId?: string | null;
+  },
 ): Promise<Shrine> {
   const now = new Date().toISOString();
   const shrine: Shrine = {
@@ -44,20 +52,23 @@ export async function createShrine(
     kana: input.kana?.trim() || null,
     prefecture: input.prefecture?.trim() || null,
     address: null,
-    latitude: null,
-    longitude: null,
-    placeId: null,
-    kind: 'shrine',
+    latitude: input.latitude ?? null,
+    longitude: input.longitude ?? null,
+    placeId: input.placeId ?? null,
+    kind: input.kind ?? 'shrine',
     createdAt: now,
     updatedAt: now,
   };
   await db.runAsync(
     `INSERT INTO shrines (id, name, kana, prefecture, address, latitude, longitude, place_id, kind, created_at, updated_at)
-     VALUES (?, ?, ?, ?, NULL, NULL, NULL, NULL, ?, ?, ?)`,
+     VALUES (?, ?, ?, ?, NULL, ?, ?, ?, ?, ?, ?)`,
     shrine.id,
     shrine.name,
     shrine.kana,
     shrine.prefecture,
+    shrine.latitude,
+    shrine.longitude,
+    shrine.placeId,
     shrine.kind,
     now,
     now,
@@ -65,14 +76,92 @@ export async function createShrine(
   return shrine;
 }
 
+const BOOK_COLUMNS = `
+  b.id, b.name, b.started_on AS startedOn, b.ended_on AS endedOn,
+  b.created_at AS createdAt, b.updated_at AS updatedAt
+`;
+
+// 今記録している帳（まだ閉じていない帳のうち、いちばん新しいもの）
 export async function getCurrentBook(db: SQLiteDatabase): Promise<Book> {
   const book = await db.getFirstAsync<Book>(
-    `SELECT id, name, started_on AS startedOn, ended_on AS endedOn,
-       created_at AS createdAt, updated_at AS updatedAt
-     FROM books ORDER BY created_at DESC LIMIT 1`,
+    `SELECT ${BOOK_COLUMNS} FROM books b
+     ORDER BY b.ended_on IS NOT NULL, b.created_at DESC, b.rowid DESC LIMIT 1`,
   );
   if (!book) throw new Error('御朱印帳が見つかりません');
   return book;
+}
+
+export async function getBook(db: SQLiteDatabase, bookId: string): Promise<Book | null> {
+  return db.getFirstAsync<Book>(`SELECT ${BOOK_COLUMNS} FROM books b WHERE b.id = ?`, bookId);
+}
+
+// 帳を新しい順に、枚数と参拝の期間を添えて返す
+export async function listBooks(db: SQLiteDatabase): Promise<BookWithStats[]> {
+  return db.getAllAsync<BookWithStats>(
+    `SELECT ${BOOK_COLUMNS},
+       COUNT(g.id) AS goshuinCount,
+       MIN(v.visited_on) AS firstVisitedOn,
+       MAX(v.visited_on) AS lastVisitedOn
+     FROM books b
+     LEFT JOIN goshuin g ON g.book_id = b.id
+     LEFT JOIN visits v ON v.id = g.visit_id
+     GROUP BY b.id
+     ORDER BY b.created_at DESC, b.rowid DESC`,
+  );
+}
+
+// 今の帳を閉じて、次の帳を始める。これからの記録は新しい帳に綴じられる
+export async function startNewBook(db: SQLiteDatabase, name: string, startedOn: string): Promise<Book> {
+  const now = new Date().toISOString();
+  const book: Book = {
+    id: randomUUID(),
+    name: name.trim(),
+    startedOn,
+    endedOn: null,
+    createdAt: now,
+    updatedAt: now,
+  };
+  await db.withTransactionAsync(async () => {
+    await db.runAsync(
+      'UPDATE books SET ended_on = ?, updated_at = ? WHERE ended_on IS NULL',
+      startedOn,
+      now,
+    );
+    await db.runAsync(
+      'INSERT INTO books (id, name, started_on, ended_on, created_at, updated_at) VALUES (?, ?, ?, NULL, ?, ?)',
+      book.id,
+      book.name,
+      book.startedOn,
+      now,
+      now,
+    );
+  });
+  return book;
+}
+
+export async function renameBook(db: SQLiteDatabase, bookId: string, name: string): Promise<void> {
+  await db.runAsync(
+    'UPDATE books SET name = ?, updated_at = ? WHERE id = ?',
+    name.trim(),
+    new Date().toISOString(),
+    bookId,
+  );
+}
+
+// 帳の中の並び順を、渡された御朱印IDの順に振り直す
+export async function reorderBook(db: SQLiteDatabase, bookId: string, goshuinIds: string[]): Promise<void> {
+  const now = new Date().toISOString();
+  await db.withTransactionAsync(async () => {
+    for (const [position, id] of goshuinIds.entries()) {
+      await db.runAsync(
+        'UPDATE goshuin SET position = ?, updated_at = ? WHERE id = ? AND book_id = ?',
+        position,
+        now,
+        id,
+        bookId,
+      );
+    }
+  });
 }
 
 export type NewVisit = {
@@ -90,6 +179,12 @@ export async function saveVisit(db: SQLiteDatabase, bookId: string, input: NewVi
   const now = new Date().toISOString();
   const visitId = randomUUID();
   await db.withTransactionAsync(async () => {
+    // 新しい御朱印は帳の最後のページに綴じる
+    const last = await db.getFirstAsync<{ maxPosition: number | null }>(
+      'SELECT MAX(position) AS maxPosition FROM goshuin WHERE book_id = ?',
+      bookId,
+    );
+    const start = (last?.maxPosition ?? -1) + 1;
     await db.runAsync(
       `INSERT INTO visits (id, shrine_id, visited_on, weather, companions, omikuji, memo, created_at, updated_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -103,7 +198,7 @@ export async function saveVisit(db: SQLiteDatabase, bookId: string, input: NewVi
       now,
       now,
     );
-    for (const [position, g] of input.goshuin.entries()) {
+    for (const [i, g] of input.goshuin.entries()) {
       await db.runAsync(
         `INSERT INTO goshuin (id, visit_id, book_id, image_file, kind, fee, position, created_at, updated_at)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -113,7 +208,7 @@ export async function saveVisit(db: SQLiteDatabase, bookId: string, input: NewVi
         g.imageFile,
         g.kind,
         g.fee,
-        position,
+        start + i,
         now,
         now,
       );
@@ -125,17 +220,17 @@ export async function saveVisit(db: SQLiteDatabase, bookId: string, input: NewVi
 const ENTRY_SELECT = `
   SELECT g.id, g.image_file AS imageFile, g.kind, g.fee,
     v.id AS visitId, v.visited_on AS visitedOn, v.weather, v.companions, v.omikuji, v.memo,
-    s.id AS shrineId, s.name AS shrineName, s.kana AS shrineKana, s.prefecture,
+    s.id AS shrineId, s.name AS shrineName, s.kana AS shrineKana, s.kind AS shrineKind, s.prefecture,
     s.address, s.latitude, s.longitude, s.place_id AS placeId
   FROM goshuin g
   JOIN visits v ON v.id = g.visit_id
   JOIN shrines s ON s.id = v.shrine_id
 `;
 
-// 帳面の順（参拝日の古い順）に並べる
+// 帳面の並び順に並べる
 export async function listBookEntries(db: SQLiteDatabase, bookId: string): Promise<GoshuinEntry[]> {
   return db.getAllAsync<GoshuinEntry>(
-    `${ENTRY_SELECT} WHERE g.book_id = ? ORDER BY v.visited_on, v.created_at, g.position`,
+    `${ENTRY_SELECT} WHERE g.book_id = ? ORDER BY g.position, g.created_at`,
     bookId,
   );
 }

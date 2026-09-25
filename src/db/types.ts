@@ -2,6 +2,17 @@
 
 export type PlaceKind = 'shrine' | 'temple';
 
+export const PLACE_KIND_LABEL: Record<PlaceKind, string> = {
+  shrine: '神社',
+  temple: 'お寺',
+};
+
+// 御朱印を授かるときに納めるお金の呼び名
+export const FEE_LABEL: Record<PlaceKind, string> = {
+  shrine: '初穂料',
+  temple: '納経料',
+};
+
 export type GoshuinKind = 'regular' | 'limited' | 'written';
 
 export const GOSHUIN_KIND_LABEL: Record<GoshuinKind, string> = {
@@ -48,6 +59,12 @@ export type Book = {
   updatedAt: string;
 };
 
+export type BookWithStats = Book & {
+  goshuinCount: number;
+  firstVisitedOn: string | null;
+  lastVisitedOn: string | null;
+};
+
 export type Goshuin = {
   id: string;
   visitId: string;
@@ -76,6 +93,7 @@ export type GoshuinEntry = {
   shrineId: string;
   shrineName: string;
   shrineKana: string | null;
+  shrineKind: PlaceKind;
   prefecture: string | null;
   address: string | null;
   latitude: number | null;
