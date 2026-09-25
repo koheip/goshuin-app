@@ -28,12 +28,25 @@ export default function TabLayout() {
           tabBarIcon: ({ color, size }) => <Ionicons name="home" size={size} color={color} />,
         }}
       />
-      <Tabs.Screen name="book" options={{ href: null }} />
       <Tabs.Screen
         name="map"
         options={{
           title: '地図',
           tabBarIcon: ({ color, size }) => <Ionicons name="map-outline" size={size} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="kami"
+        options={{
+          title: '図鑑',
+          tabBarIcon: ({ color, size }) => <Ionicons name="sparkles" size={size} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="book"
+        options={{
+          title: '御朱印帳',
+          tabBarIcon: ({ color, size }) => <Ionicons name="book" size={size} color={color} />,
         }}
       />
       <Tabs.Screen

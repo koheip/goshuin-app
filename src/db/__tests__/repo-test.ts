@@ -8,6 +8,7 @@ import {
   deleteGoshuin,
   getCurrentBook,
   getEntry,
+  getJourneyStats,
   listBookEntries,
   listBooks,
   listMappedPlaces,
@@ -106,6 +107,16 @@ describe('神社・お寺', () => {
 });
 
 describe('参拝の保存と並び順', () => {
+  it('図鑑用に参拝・場所・御朱印の数を集計する', async () => {
+    const book = await getCurrentBook(db);
+    const first = await createShrine(db, { name: '一の宮' });
+    const second = await createShrine(db, { name: '二の宮' });
+    await saveVisit(db, book.id, visit(first.id, '2025-05-01', ['a.jpg', 'b.jpg']));
+    await saveVisit(db, book.id, visit(second.id, '2025-05-02', ['c.jpg']));
+
+    expect(await getJourneyStats(db)).toEqual({ visitCount: 2, shrineCount: 2, goshuinCount: 3 });
+  });
+
   it('新しい御朱印は、参拝日にかかわらず帳の最後に綴じる', async () => {
     const book = await getCurrentBook(db);
     const shrine = await createShrine(db, { name: '一の宮' });

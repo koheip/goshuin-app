@@ -30,7 +30,7 @@ type Spread = { key: string; left?: GoshuinEntry; right?: GoshuinEntry };
 
 const SIDE_PADDING = 16;
 const COVER_PADDING = 10;
-const GRID_COLUMNS = 3;
+const GRID_COLUMNS = 2;
 
 export default function BookScreen() {
   const db = useSQLiteContext();
@@ -39,7 +39,7 @@ export default function BookScreen() {
   const { book: bookParam } = useLocalSearchParams<{ book?: string }>();
   const [book, setBook] = useState<Book | null>(null);
   const [entries, setEntries] = useState<GoshuinEntry[] | null>(null);
-  const [mode, setMode] = useState<Mode>('spread');
+  const [mode, setMode] = useState<Mode>('grid');
   const [spreadIndex, setSpreadIndex] = useState(0);
   const listRef = useRef<FlatList<Spread>>(null);
   const prevCount = useRef<number | null>(null);
@@ -114,10 +114,10 @@ export default function BookScreen() {
       <DreamyBackground />
       <View style={styles.header}>
         <View style={styles.headerText}>
-          <Text style={styles.tagline}>めぐった記憶を、ていねいに綴じる</Text>
+          <Text style={styles.tagline}>MY SACRED MEMORIES</Text>
           <View style={styles.titleRow}>
-            <Torii size={30} style={styles.titleTorii} />
-            <ScreenTitle>御朱印帳</ScreenTitle>
+            <ScreenTitle>MY BOOK</ScreenTitle>
+            <Text style={styles.titleHeart}>♡</Text>
             <Sparkle size={16} color={colors.accent} />
             <Sparkle size={10} color={colors.violet} style={styles.titleSparkleSmall} />
           </View>
@@ -184,7 +184,7 @@ export default function BookScreen() {
                 style={[styles.segmentItem, mode === m && styles.segmentItemActive]}
               >
                 <Text style={[styles.segmentLabel, mode === m && styles.segmentLabelActive]}>
-                  {m === 'spread' ? '見開き' : '一覧'}
+                  {m === 'spread' ? '見開き' : '御朱印帳'}
                 </Text>
               </Pressable>
             ))}
@@ -262,7 +262,7 @@ export default function BookScreen() {
                   accessibilityRole="button"
                   accessibilityLabel={`${item.shrineName}、${formatDot(item.visitedOn)}の御朱印を開く`}
                   onPress={() => openEntry(item)}
-                  style={[styles.gridItem, { width: (windowWidth - SIDE_PADDING * 2 - 20) / GRID_COLUMNS }]}
+                  style={[styles.gridItem, { width: (windowWidth - SIDE_PADDING * 2 - 12) / GRID_COLUMNS }]}
                 >
                   <View style={styles.gridThumb}>
                     <Image source={{ uri: imageUri(item.imageFile) }} style={styles.gridImage} resizeMode="contain" />
@@ -327,6 +327,7 @@ function PagerButton({
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.paper },
   titleRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 2 },
+  titleHeart: { marginTop: 2, fontFamily: fonts.displayHeavy, fontSize: 30, lineHeight: 34, color: colors.accent },
   titleSparkleSmall: { marginTop: 14 },
   titleTorii: { marginTop: 8, marginRight: 6 },
   coverRope: { marginBottom: 6 },
@@ -351,7 +352,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  tagline: { fontFamily: fonts.bold, fontSize: 12, letterSpacing: 2, color: colors.accentOnTint },
+  tagline: { fontFamily: fonts.bold, fontSize: 10, letterSpacing: 2, color: colors.violet },
   bookPill: {
     height: 40,
     paddingHorizontal: 14,
@@ -410,11 +411,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   pagerText: { fontFamily: fonts.regular, fontSize: 13, color: colors.muted },
-  gridContent: { paddingHorizontal: SIDE_PADDING, paddingBottom: 24, gap: 16 },
-  gridRow: { gap: 10 },
-  gridItem: { gap: 4 },
+  gridContent: { paddingHorizontal: SIDE_PADDING, paddingBottom: 24, gap: 12 },
+  gridRow: { gap: 12 },
+  gridItem: { gap: 4, padding: 8, borderRadius: radius.md, backgroundColor: 'rgba(255,255,255,.76)', borderWidth: 1, borderColor: colors.line, boxShadow: glow.soft },
   gridThumb: {
-    aspectRatio: 1 / 1.45,
+    aspectRatio: 1 / 1.12,
     borderRadius: radius.sm,
     boxShadow: glow.soft,
     backgroundColor: colors.page,
@@ -423,7 +424,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  gridImage: { width: '92%', height: '94%' },
+  gridImage: { width: '96%', height: '96%' },
   gridName: { fontSize: 13, fontFamily: fonts.bold, color: colors.ink },
   gridDate: { fontFamily: fonts.regular, fontSize: 11, color: colors.muted },
   empty: { alignItems: 'center', paddingHorizontal: SIDE_PADDING, paddingTop: 8, gap: 12 },

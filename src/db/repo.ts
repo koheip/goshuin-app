@@ -8,6 +8,24 @@ export type ShrineWithStats = Shrine & {
   lastVisitedOn: string | null;
 };
 
+export type JourneyStats = {
+  visitCount: number;
+  shrineCount: number;
+  goshuinCount: number;
+};
+
+// HOME・図鑑などで使う、これまでのめぐり全体の集計
+export async function getJourneyStats(db: SQLiteDatabase): Promise<JourneyStats> {
+  return (
+    (await db.getFirstAsync<JourneyStats>(
+      `SELECT
+        (SELECT COUNT(*) FROM visits) AS visitCount,
+        (SELECT COUNT(DISTINCT shrine_id) FROM visits) AS shrineCount,
+        (SELECT COUNT(*) FROM goshuin) AS goshuinCount`,
+    )) ?? { visitCount: 0, shrineCount: 0, goshuinCount: 0 }
+  );
+}
+
 const SHRINE_COLUMNS = `
   s.id, s.name, s.kana, s.prefecture, s.address, s.latitude, s.longitude,
   s.place_id AS placeId, s.kind, s.created_at AS createdAt, s.updated_at AS updatedAt
