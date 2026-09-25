@@ -18,7 +18,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button, Chip, ChipGroup, Stepper } from '@/components/ui';
-import { GOSHUIN_KIND_LABEL, type GoshuinKind } from '@/db/types';
+import { FEE_LABEL, GOSHUIN_KIND_LABEL, type GoshuinKind } from '@/db/types';
 import { PermissionDeniedError, pickGoshuinImage, type PickSource } from '@/lib/images';
 import { useDraft } from '@/record/draft';
 import { colors, fonts, glow, radius } from '@/theme';
@@ -29,6 +29,7 @@ export default function PhotoScreen() {
   const insets = useSafeAreaInsets();
   const { draft, update, updateGoshuin } = useDraft();
   const [busy, setBusy] = useState<PickSource | null>(null);
+  const feeLabel = FEE_LABEL[draft.shrine?.kind ?? 'shrine'];
 
   async function add(source: PickSource) {
     setBusy(source);
@@ -96,14 +97,14 @@ export default function PhotoScreen() {
                   ))}
                 </ChipGroup>
                 <View style={styles.feeRow}>
-                  <Text style={styles.feeLabel}>初穂料</Text>
+                  <Text style={styles.feeLabel}>{feeLabel}</Text>
                   <TextInput
                     value={g.fee}
                     onChangeText={(t) => updateGoshuin(g.key, { fee: t.replace(/[^0-9]/g, '') })}
                     keyboardType="number-pad"
                     placeholder="500"
                     placeholderTextColor={colors.placeholder}
-                    accessibilityLabel={`御朱印 ${i + 1} の初穂料（円）`}
+                    accessibilityLabel={`御朱印 ${i + 1} の${feeLabel}（円）`}
                     style={styles.feeInput}
                   />
                   <Text style={styles.feeLabel}>円</Text>

@@ -15,9 +15,10 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Torii } from '@/components/shrine';
-import { Button, Field, Stepper } from '@/components/ui';
+import { PlaceMark } from '@/components/shrine';
+import { Button, Chip, ChipGroup, Field, FieldLabel, Stepper } from '@/components/ui';
 import { createShrine, searchShrines, type ShrineWithStats } from '@/db/repo';
+import { PLACE_KIND_LABEL, type PlaceKind } from '@/db/types';
 import { formatDot } from '@/lib/dates';
 import { useDraft } from '@/record/draft';
 import { colors, radius, fonts } from '@/theme';
@@ -33,6 +34,7 @@ export default function SelectShrineScreen() {
   const [newName, setNewName] = useState('');
   const [newKana, setNewKana] = useState('');
   const [newPrefecture, setNewPrefecture] = useState('');
+  const [newKind, setNewKind] = useState<PlaceKind>('shrine');
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -52,16 +54,17 @@ export default function SelectShrineScreen() {
     if (!newName.trim()) return;
     setSaving(true);
     try {
-      const shrine = await createShrine(db, { name: newName, kana: newKana, prefecture: newPrefecture });
-      update({ shrine: { id: shrine.id, name: shrine.name } });
+      const shrine = await createShrine(db, { name: newName, kana: newKana, prefecture: newPrefecture, kind: newKind });
+      update({ shrine: { id: shrine.id, name: shrine.name, kind: shrine.kind } });
       setAdding(false);
       setNewName('');
       setNewKana('');
       setNewPrefecture('');
+      setNewKind('shrine');
       setQuery('');
       setResults(await searchShrines(db, ''));
     } catch (e) {
-      Alert.alert('神社を追加できませんでした', String(e));
+      Alert.alert('追加できませんでした', String(e));
     } finally {
       setSaving(false);
     }
@@ -75,14 +78,14 @@ export default function SelectShrineScreen() {
         <TextInput
           value={query}
           onChangeText={setQuery}
-          placeholder="登録済みの神社を検索"
+          placeholder="登録済みの神社・お寺を検索"
           placeholderTextColor={colors.placeholder}
-          accessibilityLabel="登録済みの神社を検索"
+          accessibilityLabel="登録済みの神社・お寺を検索"
           style={styles.searchInput}
           returnKeyType="search"
         />
       </View>
-      {!noShrinesYet && <Text style={styles.sectionLabel}>これまでに記録した神社</Text>}
+      {!noShrinesYet && <Text style={styles.sectionLabel}>これまでに記録した神社・お寺</Text>}
     </View>
   );
 
@@ -90,9 +93,24 @@ export default function SelectShrineScreen() {
     <View style={styles.addBlock}>
       {showAddForm ? (
         <View style={styles.addForm}>
-          <Text style={styles.addTitle}>{noShrinesYet ? '最初の神社を追加しましょう' : '神社を追加'}</Text>
-          <Field label="神社名（必須）" value={newName} onChangeText={setNewName} placeholder="例：〇〇神社" />
-          <Field label="読み" value={newKana} onChangeText={setNewKana} placeholder="例：まるまるじんじゃ" />
+          <Text style={styles.addTitle}>
+            {noShrinesYet ? '最初の神社・お寺を追加しましょう' : '神社・お寺を追加'}
+          </Text>
+          <View style={styles.kindGroup}>
+            <FieldLabel>種類</FieldLabel>
+            <ChipGroup>
+              {(Object.keys(PLACE_KIND_LABEL) as PlaceKind[]).map((k) => (
+                <Chip key={k} label={PLACE_KIND_LABEL[k]} selected={newKind === k} onPress={() => setNewKind(k)} />
+              ))}
+            </ChipGroup>
+          </View>
+          <Field
+            label="名前（必須）"
+            value={newName}
+            onChangeText={setNewName}
+            placeholder={newKind === 'temple' ? '例：〇〇寺' : '例：〇〇神社'}
+          />
+          <Field label="読み" value={newKana} onChangeText={setNewKana} placeholder={newKind === 'temple' ? '例：まるまるでら' : '例：まるまるじんじゃ'} />
           <Field label="都道府県" value={newPrefecture} onChangeText={setNewPrefecture} placeholder="例：東京都" />
           <View style={styles.addActions}>
             {!noShrinesYet && (
@@ -125,7 +143,7 @@ export default function SelectShrineScreen() {
         ListFooterComponent={footer}
         ListEmptyComponent={
           results !== null && query.trim() !== '' ? (
-            <Text style={styles.empty}>「{query.trim()}」に一致する神社はありません</Text>
+            <Text style={styles.empty}>「{query.trim()}」に一致する神社・お寺はありません</Text>
           ) : null
         }
         keyboardShouldPersistTaps="handled"
@@ -137,7 +155,7 @@ export default function SelectShrineScreen() {
             <Pressable
               accessibilityRole="radio"
               accessibilityState={{ selected }}
-              onPress={() => update({ shrine: { id: item.id, name: item.name } })}
+              onPress={() => update({ shrine: { id: item.id, name: item.name, kind: item.kind } })}
               style={[
                 styles.row,
                 index === 0 && styles.rowFirst,
@@ -146,7 +164,7 @@ export default function SelectShrineScreen() {
               ]}
             >
               <View style={styles.rowIcon}>
-                <Torii size={22} />
+                <PlaceMark kind={item.kind} size={22} />
               </View>
               <View style={styles.flex}>
                 <Text style={styles.rowName}>{item.name}</Text>
@@ -173,7 +191,7 @@ export default function SelectShrineScreen() {
       />
       <View style={[styles.bottomBar, { paddingBottom: Math.max(insets.bottom, 16) }]}>
         <Button
-          label={draft.shrine ? `次へ：${draft.shrine.name}の御朱印を撮影` : '神社を選んでください'}
+          label={draft.shrine ? `次へ：${draft.shrine.name}の御朱印を撮影` : '神社・お寺を選んでください'}
           disabled={!draft.shrine}
           onPress={() => router.push('/record/photo')}
           icon={<Ionicons name="camera-outline" size={20} color="#FFFFFF" />}
@@ -247,6 +265,7 @@ const styles = StyleSheet.create({
   },
   addTitle: { fontSize: 15, fontFamily: fonts.bold, color: colors.ink },
   addActions: { flexDirection: 'row', gap: 10 },
+  kindGroup: { gap: 8 },
   addLink: { minHeight: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
   addLinkLabel: { fontSize: 14, fontFamily: fonts.regular, color: colors.accent },
   bottomBar: {

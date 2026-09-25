@@ -4,10 +4,10 @@ import { useSQLiteContext } from 'expo-sqlite';
 import { useCallback, useState } from 'react';
 import { Alert, Image, ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { Shimenawa, Torii } from '@/components/shrine';
+import { PlaceMark, Shimenawa } from '@/components/shrine';
 import { Button } from '@/components/ui';
 import { deleteGoshuin, getEntry } from '@/db/repo';
-import { GOSHUIN_KIND_LABEL, type GoshuinEntry } from '@/db/types';
+import { FEE_LABEL, GOSHUIN_KIND_LABEL, type GoshuinEntry } from '@/db/types';
 import { formatJa } from '@/lib/dates';
 import { deleteImage, imageUri } from '@/lib/images';
 import { openInGoogleMaps } from '@/lib/maps';
@@ -75,7 +75,7 @@ export default function GoshuinDetailScreen() {
   const details: [string, string | null][] = [
     ['参拝日', formatJa(entry.visitedOn)],
     ['種類', GOSHUIN_KIND_LABEL[entry.kind]],
-    ['初穂料', entry.fee !== null ? `${entry.fee.toLocaleString()}円` : null],
+    [FEE_LABEL[entry.shrineKind], entry.fee !== null ? `${entry.fee.toLocaleString()}円` : null],
     ['天気', entry.weather],
     ['同行者', entry.companions],
     ['おみくじ', entry.omikuji],
@@ -94,7 +94,7 @@ export default function GoshuinDetailScreen() {
       </View>
 
       <View style={styles.titleRow}>
-        <Torii size={40} style={styles.titleTorii} />
+        <PlaceMark kind={entry.shrineKind} size={40} style={styles.titleTorii} />
         <View style={styles.titleBlock}>
           {entry.shrineKana ? <Text style={styles.kana}>{entry.shrineKana}</Text> : null}
           <Text style={styles.name}>{entry.shrineName}</Text>

@@ -116,7 +116,7 @@ export function FieldLabel({ children }: { children: string }) {
   return <Text style={styles.fieldLabel}>{children}</Text>;
 }
 
-const STEPS = ['神社を選ぶ', '撮影', 'メモ（任意）'];
+const STEPS = ['神社・お寺', '撮影', 'メモ（任意）'];
 
 // 記録の進み具合（1〜3）
 export function Stepper({ current }: { current: 1 | 2 | 3 }) {

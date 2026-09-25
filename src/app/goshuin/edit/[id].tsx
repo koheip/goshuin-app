@@ -6,7 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button, Chip, ChipGroup, Field, FieldLabel } from '@/components/ui';
 import { getEntry, updateEntry } from '@/db/repo';
-import { GOSHUIN_KIND_LABEL, WEATHER_OPTIONS, type GoshuinKind } from '@/db/types';
+import { FEE_LABEL, GOSHUIN_KIND_LABEL, WEATHER_OPTIONS, type GoshuinKind, type PlaceKind } from '@/db/types';
 import { formatJa, isValidIsoDate, today } from '@/lib/dates';
 import { colors, fonts } from '@/theme';
 
@@ -14,6 +14,7 @@ const KINDS = Object.keys(GOSHUIN_KIND_LABEL) as GoshuinKind[];
 
 type Form = {
   shrineName: string;
+  shrineKind: PlaceKind;
   visitedOn: string;
   weather: string | null;
   companions: string;
@@ -35,6 +36,7 @@ export default function EditGoshuinScreen() {
       setForm(
         entry && {
           shrineName: entry.shrineName,
+          shrineKind: entry.shrineKind,
           visitedOn: entry.visitedOn,
           weather: entry.weather,
           companions: entry.companions ?? '',
@@ -96,14 +98,14 @@ export default function EditGoshuinScreen() {
             ))}
           </ChipGroup>
           <View style={styles.feeRow}>
-            <Text style={styles.feeLabel}>初穂料</Text>
+            <Text style={styles.feeLabel}>{FEE_LABEL[current.shrineKind]}</Text>
             <TextInput
               value={current.fee}
               onChangeText={(t) => update({ fee: t.replace(/[^0-9]/g, '') })}
               keyboardType="number-pad"
               placeholder="500"
               placeholderTextColor={colors.placeholder}
-              accessibilityLabel="初穂料（円）"
+              accessibilityLabel={`${FEE_LABEL[current.shrineKind]}（円）`}
               style={styles.feeInput}
             />
             <Text style={styles.feeLabel}>円</Text>

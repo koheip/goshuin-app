@@ -1,9 +1,9 @@
 import { createContext, useContext, useMemo, useState, type ReactNode } from 'react';
 
-import type { GoshuinKind } from '@/db/types';
+import type { GoshuinKind, PlaceKind } from '@/db/types';
 import { today } from '@/lib/dates';
 
-export type DraftShrine = { id: string; name: string };
+export type DraftShrine = { id: string; name: string; kind: PlaceKind };
 
 export type DraftGoshuin = {
   key: string;
