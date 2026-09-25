@@ -45,7 +45,14 @@
           "photosPermission": "撮影済みの御朱印の写真を選んで記録するために写真ライブラリを使用します。",
           "microphonePermission": false
         }
-      ]
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "参拝した神社・お寺の場所を記録し、地図に表示するために現在地を使用します。"
+        }
+      ],
+      "expo-maps"
     ]
   }
 }

@@ -291,3 +291,41 @@ export async function updateEntry(db: SQLiteDatabase, goshuinId: string, input: 
     );
   });
 }
+
+export async function setShrineLocation(
+  db: SQLiteDatabase,
+  shrineId: string,
+  coords: { latitude: number; longitude: number },
+): Promise<void> {
+  await db.runAsync(
+    'UPDATE shrines SET latitude = ?, longitude = ?, updated_at = ? WHERE id = ?',
+    coords.latitude,
+    coords.longitude,
+    new Date().toISOString(),
+    shrineId,
+  );
+}
+
+export type MappedPlace = ShrineWithStats & {
+  latitude: number;
+  longitude: number;
+  // 地図から開く、いちばん新しい御朱印
+  latestGoshuinId: string | null;
+};
+
+// 位置が登録されている神社・お寺を、参拝回数と最新の御朱印つきで返す
+export async function listMappedPlaces(db: SQLiteDatabase): Promise<MappedPlace[]> {
+  return db.getAllAsync<MappedPlace>(
+    `SELECT ${SHRINE_COLUMNS},
+       COUNT(DISTINCT v.id) AS visitCount,
+       MAX(v.visited_on) AS lastVisitedOn,
+       (SELECT g.id FROM goshuin g JOIN visits v2 ON v2.id = g.visit_id
+        WHERE v2.shrine_id = s.id
+        ORDER BY v2.visited_on DESC, g.created_at DESC LIMIT 1) AS latestGoshuinId
+     FROM shrines s
+     LEFT JOIN visits v ON v.shrine_id = s.id
+     WHERE s.latitude IS NOT NULL AND s.longitude IS NOT NULL
+     GROUP BY s.id
+     ORDER BY lastVisitedOn IS NULL, lastVisitedOn DESC`,
+  );
+}

@@ -10,10 +10,12 @@ import {
   getEntry,
   listBookEntries,
   listBooks,
+  listMappedPlaces,
   renameBook,
   reorderBook,
   saveVisit,
   searchShrines,
+  setShrineLocation,
   startNewBook,
   updateEntry,
   type NewVisit,
@@ -210,5 +212,27 @@ describe('編集と削除', () => {
     expect(await deleteGoshuin(db, b.id)).toBe('b.jpg');
     expect((await searchShrines(db, ''))[0].visitCount).toBe(0);
     expect(await deleteGoshuin(db, b.id)).toBeNull();
+  });
+});
+
+describe('地図', () => {
+  it('位置のある神社・お寺だけを、最新の御朱印つきで返す', async () => {
+    const book = await getCurrentBook(db);
+    const withPlace = await createShrine(db, { name: '一の宮', latitude: 35.1, longitude: 139.1 });
+    const later = await createShrine(db, { name: '浅草寺', kind: 'temple' });
+    await createShrine(db, { name: '位置なし神社' });
+    await saveVisit(db, book.id, visit(withPlace.id, '2025-04-01', ['old.jpg']));
+    await saveVisit(db, book.id, visit(withPlace.id, '2025-05-01', ['new.jpg']));
+
+    expect(await listMappedPlaces(db)).toHaveLength(1);
+
+    await setShrineLocation(db, later.id, { latitude: 35.7, longitude: 139.8 });
+    const places = await listMappedPlaces(db);
+    expect(places.map((p) => p.name)).toEqual(['一の宮', '浅草寺']);
+
+    const [first, second] = places;
+    expect(first).toMatchObject({ latitude: 35.1, longitude: 139.1, visitCount: 2, lastVisitedOn: '2025-05-01' });
+    expect((await getEntry(db, first.latestGoshuinId!))?.imageFile).toBe('new.jpg');
+    expect(second).toMatchObject({ kind: 'temple', visitCount: 0, latestGoshuinId: null });
   });
 });

@@ -4,10 +4,12 @@ import { useEffect, useState } from 'react';
 import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { LocationButton } from '@/components/LocationButton';
 import { Button, Chip, ChipGroup, Field, FieldLabel } from '@/components/ui';
-import { getEntry, updateEntry } from '@/db/repo';
+import { getEntry, setShrineLocation, updateEntry } from '@/db/repo';
 import { FEE_LABEL, GOSHUIN_KIND_LABEL, WEATHER_OPTIONS, type GoshuinKind, type PlaceKind } from '@/db/types';
 import { formatJa, isValidIsoDate, today } from '@/lib/dates';
+import type { Coords } from '@/lib/location';
 import { colors, fonts } from '@/theme';
 
 const KINDS = Object.keys(GOSHUIN_KIND_LABEL) as GoshuinKind[];
@@ -15,6 +17,9 @@ const KINDS = Object.keys(GOSHUIN_KIND_LABEL) as GoshuinKind[];
 type Form = {
   shrineName: string;
   shrineKind: PlaceKind;
+  shrineId: string;
+  coords: Coords | null;
+  coordsChanged: boolean;
   visitedOn: string;
   weather: string | null;
   companions: string;
@@ -37,6 +42,12 @@ export default function EditGoshuinScreen() {
         entry && {
           shrineName: entry.shrineName,
           shrineKind: entry.shrineKind,
+          shrineId: entry.shrineId,
+          coords:
+            entry.latitude !== null && entry.longitude !== null
+              ? { latitude: entry.latitude, longitude: entry.longitude }
+              : null,
+          coordsChanged: false,
           visitedOn: entry.visitedOn,
           weather: entry.weather,
           companions: entry.companions ?? '',
@@ -78,6 +89,9 @@ export default function EditGoshuinScreen() {
         kind: current.kind,
         fee: current.fee ? Number(current.fee) : null,
       });
+      if (current.coordsChanged && current.coords) {
+        await setShrineLocation(db, current.shrineId, current.coords);
+      }
       router.back();
     } catch (e) {
       setSaving(false);
@@ -156,6 +170,11 @@ export default function EditGoshuinScreen() {
           placeholder="その日の空気や感じたことを。"
           multiline
         />
+        <View style={styles.group}>
+          <FieldLabel>{`この${current.shrineKind === 'temple' ? 'お寺' : '神社'}の位置`}</FieldLabel>
+          <LocationButton value={current.coords} onChange={(coords) => update({ coords, coordsChanged: true })} />
+        </View>
+
         <Text style={styles.note}>参拝日・天気・同行者・おみくじ・メモは、同じ参拝で授かった御朱印すべてに反映されます。</Text>
       </ScrollView>
 

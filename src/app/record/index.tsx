@@ -15,11 +15,13 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { LocationButton } from '@/components/LocationButton';
 import { PlaceMark } from '@/components/shrine';
 import { Button, Chip, ChipGroup, Field, FieldLabel, Stepper } from '@/components/ui';
 import { createShrine, searchShrines, type ShrineWithStats } from '@/db/repo';
 import { PLACE_KIND_LABEL, type PlaceKind } from '@/db/types';
 import { formatDot } from '@/lib/dates';
+import type { Coords } from '@/lib/location';
 import { useDraft } from '@/record/draft';
 import { colors, radius, fonts } from '@/theme';
 
@@ -35,6 +37,7 @@ export default function SelectShrineScreen() {
   const [newKana, setNewKana] = useState('');
   const [newPrefecture, setNewPrefecture] = useState('');
   const [newKind, setNewKind] = useState<PlaceKind>('shrine');
+  const [newCoords, setNewCoords] = useState<Coords | null>(null);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -54,13 +57,14 @@ export default function SelectShrineScreen() {
     if (!newName.trim()) return;
     setSaving(true);
     try {
-      const shrine = await createShrine(db, { name: newName, kana: newKana, prefecture: newPrefecture, kind: newKind });
+      const shrine = await createShrine(db, { name: newName, kana: newKana, prefecture: newPrefecture, kind: newKind, ...newCoords });
       update({ shrine: { id: shrine.id, name: shrine.name, kind: shrine.kind } });
       setAdding(false);
       setNewName('');
       setNewKana('');
       setNewPrefecture('');
       setNewKind('shrine');
+      setNewCoords(null);
       setQuery('');
       setResults(await searchShrines(db, ''));
     } catch (e) {
@@ -112,6 +116,7 @@ export default function SelectShrineScreen() {
           />
           <Field label="読み" value={newKana} onChangeText={setNewKana} placeholder={newKind === 'temple' ? '例：まるまるでら' : '例：まるまるじんじゃ'} />
           <Field label="都道府県" value={newPrefecture} onChangeText={setNewPrefecture} placeholder="例：東京都" />
+          <LocationButton value={newCoords} onChange={setNewCoords} clearable />
           <View style={styles.addActions}>
             {!noShrinesYet && (
               <Button label="やめる" variant="secondary" onPress={() => setAdding(false)} style={{ flex: 1 }} />
