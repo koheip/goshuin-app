@@ -1,7 +1,7 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 import { randomUUID } from 'expo-crypto';
 
-const LATEST_VERSION = 3;
+const LATEST_VERSION = 5;
 
 // PRAGMA user_version でスキーマの版を管理し、足りない分だけ順に適用する
 export async function migrateDbIfNeeded(db: SQLiteDatabase) {
@@ -96,6 +96,23 @@ export async function migrateDbIfNeeded(db: SQLiteDatabase) {
       new Date().toISOString(),
     );
     version = 3;
+  }
+
+  if (version < 5) {
+    await db.execAsync(`
+      CREATE TABLE IF NOT EXISTS app_settings (
+        key TEXT PRIMARY KEY NOT NULL,
+        value TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      );
+    `);
+    await db.runAsync(
+      'INSERT OR IGNORE INTO app_settings (key, value, updated_at) VALUES (?, ?, ?)',
+      'tutorial_complete',
+      '0',
+      new Date().toISOString(),
+    );
+    version = 5;
   }
 
   await db.execAsync(`PRAGMA user_version = ${version}`);

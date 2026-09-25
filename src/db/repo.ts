@@ -44,6 +44,24 @@ export async function saveAvatarPreferences(db: SQLiteDatabase, preferences: Ava
   );
 }
 
+export async function isTutorialComplete(db: SQLiteDatabase): Promise<boolean> {
+  const row = await db.getFirstAsync<{ value: string }>(
+    'SELECT value FROM app_settings WHERE key = ?',
+    'tutorial_complete',
+  );
+  return row?.value === '1';
+}
+
+export async function setTutorialComplete(db: SQLiteDatabase, complete: boolean): Promise<void> {
+  await db.runAsync(
+    `INSERT INTO app_settings (key, value, updated_at) VALUES (?, ?, ?)
+     ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at`,
+    'tutorial_complete',
+    complete ? '1' : '0',
+    new Date().toISOString(),
+  );
+}
+
 // HOME・図鑑などで使う、これまでのめぐり全体の集計
 export async function getJourneyStats(db: SQLiteDatabase): Promise<JourneyStats> {
   return (

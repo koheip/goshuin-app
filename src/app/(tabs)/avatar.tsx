@@ -10,6 +10,7 @@ import { BLESSINGS, EQUIPMENT, type BlessingId, type EquipmentId } from '@/avata
 import { equipmentArtwork } from '@/avatar/assets';
 import { IllustratedAvatar, PixelAvatar } from '@/components/AvatarPreview';
 import { KamiLoadingScreen } from '@/components/KamiLoadingScreen';
+import { useTutorial } from '@/components/TutorialProvider';
 import { Button, DreamyBackground, Sparkle } from '@/components/ui';
 import { getAvatarPreferences, getJourneyStats, saveAvatarPreferences } from '@/db/repo';
 import { colors, fonts, glow, gradients, radius } from '@/theme';
@@ -23,6 +24,7 @@ const blessingBackgrounds: Record<BlessingId, number> = {
 
 export default function AvatarScreen() {
   const db = useSQLiteContext();
+  const { replayTutorial } = useTutorial();
   const [visits, setVisits] = useState<number | null>(null);
   const [blessingId, setBlessingId] = useState<BlessingId>('amaterasu');
   const [focusedBlessingId, setFocusedBlessingId] = useState<BlessingId>('amaterasu');
@@ -178,6 +180,7 @@ export default function AvatarScreen() {
         </View>
 
         <Button label="この姿にする" onPress={save} loading={saving} icon={<Ionicons name="sparkles" size={18} color="#FFFFFF" />} />
+        <Pressable accessibilityRole="button" onPress={replayTutorial} style={styles.tutorialReplay}><Ionicons name="help-circle-outline" size={17} color={colors.violet} /><Text style={styles.tutorialReplayText}>チュートリアルをもう一度見る</Text></Pressable>
       </ScrollView>
     </SafeAreaView>
   );
@@ -206,4 +209,5 @@ const styles = StyleSheet.create({
   progressTrack: { height: 3, marginTop: 6, overflow: 'hidden', borderRadius: 2, backgroundColor: 'rgba(255,255,255,.28)' }, progressFill: { height: '100%', borderRadius: 2 }, cardFooter: { marginTop: 5, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }, cardFooterText: { fontFamily: fonts.bold, fontSize: 6, letterSpacing: .6, color: 'rgba(255,255,255,.82)' },
   equipmentGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 }, equipmentCard: { width: '23%', minHeight: 82, padding: 7, alignItems: 'center', justifyContent: 'center', gap: 5, borderRadius: 16, backgroundColor: 'rgba(255,255,255,.8)', borderWidth: 1.5, borderColor: colors.line, position: 'relative' }, equipmentSelected: { borderColor: colors.accent, backgroundColor: colors.accentTint }, locked: { opacity: .45 },
   itemIcon: { width: 48, height: 48, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: '#FFFFFF' }, itemArtwork: { width: 45, height: 45 }, itemName: { fontFamily: fonts.bold, fontSize: 9, color: colors.ink, textAlign: 'center' }, check: { position: 'absolute', top: 4, right: 4, width: 18, height: 18, borderRadius: 9, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.accent },
+  tutorialReplay: { minHeight: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }, tutorialReplayText: { fontFamily: fonts.bold, fontSize: 11, color: colors.violet },
 });

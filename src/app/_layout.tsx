@@ -12,6 +12,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useState } from 'react';
 
 import { KamiLoadingScreen } from '@/components/KamiLoadingScreen';
+import { TutorialProvider } from '@/components/TutorialProvider';
 import { migrateDbIfNeeded } from '@/db/migrate';
 import { colors, fonts } from '@/theme';
 
@@ -37,6 +38,7 @@ export default function RootLayout() {
   return (
     <>
       <SQLiteProvider databaseName="goshuin.db" onInit={migrateDbIfNeeded}>
+      <TutorialProvider>
       <StatusBar style="dark" />
       <Stack
         screenOptions={{
@@ -56,6 +58,7 @@ export default function RootLayout() {
         <Stack.Screen name="books/index" options={{ title: '御朱印帳' }} />
         <Stack.Screen name="books/[id]" options={{ title: '帳の名前と並び順' }} />
       </Stack>
+      </TutorialProvider>
       </SQLiteProvider>
       {showLoading && <KamiLoadingScreen onFinish={finishLoading} />}
     </>
