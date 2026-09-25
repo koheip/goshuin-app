@@ -49,7 +49,21 @@ export const radius = {
   sm: 14,
   md: 22,
   lg: 28,
+  pill: 999,
 };
+
+export const spacing = {
+  xs: 4,
+  sm: 8,
+  md: 12,
+  lg: 20,
+  xl: 28,
+} as const;
+
+export const glass = {
+  fill: 'rgba(255, 255, 255, 0.78)',
+  border: 'rgba(255, 255, 255, 0.9)',
+} as const;
 
 // ふんわり光る影
 export const glow = {

@@ -44,7 +44,7 @@ export default function MemoScreen() {
       });
       reset();
       // 別の帳を見ていたときも、今記録した帳を開く
-      router.dismissTo({ pathname: '/', params: { book: book.id } });
+      router.dismissTo({ pathname: '/book', params: { book: book.id } });
     } catch (e) {
       // DBに書けなかったときは、先にコピーした画像を残さない
       savedFiles.forEach(deleteImage);

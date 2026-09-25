@@ -57,7 +57,7 @@ export default function BooksScreen() {
     setSaving(true);
     try {
       const book = await startNewBook(db, newName, today());
-      router.navigate({ pathname: '/', params: { book: book.id } });
+      router.navigate({ pathname: '/book', params: { book: book.id } });
     } catch (e) {
       Alert.alert('新しい帳を始められませんでした', String(e));
       setSaving(false);
@@ -81,7 +81,7 @@ export default function BooksScreen() {
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel={`${book.name}を開く`}
-                onPress={() => router.navigate({ pathname: '/', params: { book: book.id } })}
+                onPress={() => router.navigate({ pathname: '/book', params: { book: book.id } })}
                 style={styles.cardMain}
               >
                 <LinearGradient

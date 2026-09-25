@@ -14,7 +14,21 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 
 import { Sakura } from '@/components/shrine';
-import { colors, fonts, glow, gradients, radius } from '@/theme';
+import { colors, fonts, glass, glow, gradients, radius } from '@/theme';
+
+export function GlassCard({ children, style }: { children: ReactNode; style?: ViewStyle }) {
+  return <View style={[styles.glassCard, style]}>{children}</View>;
+}
+
+export function PixelWordmark() {
+  return (
+    <View accessibilityRole="header" accessibilityLabel="KAMI MEGU" style={styles.wordmarkRow}>
+      <Text style={[styles.wordmark, { color: colors.ink }]}>KAMI</Text>
+      <Text style={styles.wordmarkHeart}>♡</Text>
+      <Text style={[styles.wordmark, { color: colors.accent }]}>MEGU</Text>
+    </View>
+  );
+}
 
 type ButtonProps = {
   label: string;
@@ -184,6 +198,17 @@ export function DreamyBackground() {
 }
 
 const styles = StyleSheet.create({
+  glassCard: {
+    padding: 16,
+    borderRadius: radius.lg,
+    backgroundColor: glass.fill,
+    borderWidth: 1.5,
+    borderColor: glass.border,
+    boxShadow: glow.soft,
+  },
+  wordmarkRow: { flexDirection: 'row', alignItems: 'center' },
+  wordmark: { fontFamily: fonts.displayHeavy, fontSize: 25, letterSpacing: 1.5 },
+  wordmarkHeart: { marginHorizontal: -1, color: colors.violet, fontFamily: fonts.displayHeavy, fontSize: 27, lineHeight: 29 },
   button: {
     minHeight: 54,
     borderRadius: radius.md,

@@ -24,10 +24,11 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: '御朱印帳',
-          tabBarIcon: ({ color, size }) => <Ionicons name="heart-circle-outline" size={size} color={color} />,
+          title: 'ホーム',
+          tabBarIcon: ({ color, size }) => <Ionicons name="home" size={size} color={color} />,
         }}
       />
+      <Tabs.Screen name="book" options={{ href: null }} />
       <Tabs.Screen
         name="map"
         options={{
