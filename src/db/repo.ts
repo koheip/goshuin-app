@@ -125,7 +125,8 @@ export async function saveVisit(db: SQLiteDatabase, bookId: string, input: NewVi
 const ENTRY_SELECT = `
   SELECT g.id, g.image_file AS imageFile, g.kind, g.fee,
     v.id AS visitId, v.visited_on AS visitedOn, v.weather, v.companions, v.omikuji, v.memo,
-    s.id AS shrineId, s.name AS shrineName, s.kana AS shrineKana, s.prefecture
+    s.id AS shrineId, s.name AS shrineName, s.kana AS shrineKana, s.prefecture,
+    s.address, s.latitude, s.longitude, s.place_id AS placeId
   FROM goshuin g
   JOIN visits v ON v.id = g.visit_id
   JOIN shrines s ON s.id = v.shrine_id

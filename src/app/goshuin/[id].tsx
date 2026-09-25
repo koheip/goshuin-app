@@ -1,3 +1,4 @@
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useEffect, useState } from 'react';
@@ -9,6 +10,7 @@ import { deleteGoshuin, getEntry } from '@/db/repo';
 import { GOSHUIN_KIND_LABEL, type GoshuinEntry } from '@/db/types';
 import { formatJa } from '@/lib/dates';
 import { deleteImage, imageUri } from '@/lib/images';
+import { openInGoogleMaps } from '@/lib/maps';
 import { colors, fonts, glow, radius } from '@/theme';
 
 export default function GoshuinDetailScreen() {
@@ -34,6 +36,22 @@ export default function GoshuinDetailScreen() {
         },
       },
     ]);
+  }
+
+  async function openMap() {
+    if (!entry) return;
+    try {
+      await openInGoogleMaps({
+        name: entry.shrineName,
+        prefecture: entry.prefecture,
+        address: entry.address,
+        latitude: entry.latitude,
+        longitude: entry.longitude,
+        placeId: entry.placeId,
+      });
+    } catch {
+      Alert.alert('地図を開けませんでした', 'Google マップまたはブラウザを確認してください。');
+    }
   }
 
   if (entry === undefined) return null;
@@ -74,6 +92,13 @@ export default function GoshuinDetailScreen() {
           {entry.prefecture ? <Text style={styles.muted}>{entry.prefecture}</Text> : null}
         </View>
       </View>
+
+      <Button
+        label="地図で見る"
+        variant="secondary"
+        onPress={openMap}
+        icon={<Ionicons name="map-outline" size={18} color={colors.ink} />}
+      />
 
       <View style={styles.table}>
         {details

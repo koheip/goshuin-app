@@ -76,7 +76,7 @@ export default function SelectShrineScreen() {
           value={query}
           onChangeText={setQuery}
           placeholder="登録済みの神社を検索"
-          placeholderTextColor="#8E857A"
+          placeholderTextColor={colors.placeholder}
           accessibilityLabel="登録済みの神社を検索"
           style={styles.searchInput}
           returnKeyType="search"

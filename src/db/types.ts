@@ -77,4 +77,8 @@ export type GoshuinEntry = {
   shrineName: string;
   shrineKana: string | null;
   prefecture: string | null;
+  address: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  placeId: string | null;
 };
