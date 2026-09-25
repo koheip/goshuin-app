@@ -8,9 +8,11 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.koheip.goshuin"
     },
     "android": {
+      "package": "com.koheip.goshuin",
       "adaptiveIcon": {
         "backgroundColor": "#F6F1E7",
         "foregroundImage": "./assets/android-icon-foreground.png",
