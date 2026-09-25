@@ -7,6 +7,7 @@ import { Animated, FlatList, Image, Pressable, StyleSheet, Text, View } from 're
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { DreamyBackground, Sparkle } from '@/components/ui';
+import { KamiLoadingScreen } from '@/components/KamiLoadingScreen';
 import { getJourneyStats, type JourneyStats } from '@/db/repo';
 import { colors, fonts, glow, gradients, radius } from '@/theme';
 
@@ -59,6 +60,7 @@ export default function KamiScreen() {
   return (
     <SafeAreaView style={styles.screen} edges={['top']}>
       <DreamyBackground />
+      {stats === null && <KamiLoadingScreen variant="loading" message="神さまとのご縁をたどっています…" />}
       <View style={styles.header}>
         <View>
           <Text style={styles.kicker}>KAMI COLLECTION</Text>

@@ -6,6 +6,7 @@ import { useCallback, useState } from 'react';
 import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { Button, Field } from '@/components/ui';
+import { KamiLoadingScreen } from '@/components/KamiLoadingScreen';
 import { listBooks, startNewBook } from '@/db/repo';
 import type { BookWithStats } from '@/db/types';
 import { formatDot, today } from '@/lib/dates';
@@ -64,7 +65,7 @@ export default function BooksScreen() {
     }
   }
 
-  if (books === null) return null;
+  if (books === null) return <View style={styles.flex}><KamiLoadingScreen variant="loading" message="御朱印帳をそろえています…" /></View>;
   const currentId = books.find((b) => b.endedOn === null)?.id ?? books[0]?.id;
 
   return (

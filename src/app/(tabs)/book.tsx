@@ -17,6 +17,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { GoshuinPage } from '@/components/GoshuinPage';
+import { KamiLoadingScreen } from '@/components/KamiLoadingScreen';
 import { Sakura, Shimenawa, Torii } from '@/components/shrine';
 import { Button, DreamyBackground, ScreenTitle, Sparkle } from '@/components/ui';
 import { getBook, getCurrentBook, listBookEntries } from '@/db/repo';
@@ -149,7 +150,7 @@ export default function BookScreen() {
         </View>
       </View>
 
-      {entries === null ? null : entries.length === 0 ? (
+      {entries === null ? <KamiLoadingScreen variant="loading" message="御朱印帳をひらいています…" /> : entries.length === 0 ? (
         <View style={styles.empty}>
           <LinearGradient colors={gradients.cover} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[styles.cover, { width: spreadWidth }]}>
             <Shimenawa width={spreadWidth - COVER_PADDING * 2} shide={5} style={styles.coverRope} />

@@ -9,8 +9,9 @@ import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { SQLiteProvider } from 'expo-sqlite';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
+import { KamiLoadingScreen } from '@/components/KamiLoadingScreen';
 import { migrateDbIfNeeded } from '@/db/migrate';
 import { colors, fonts } from '@/theme';
 
@@ -23,6 +24,8 @@ export default function RootLayout() {
     MPLUSRounded1c_800ExtraBold,
     MPLUSRounded1c_900Black,
   });
+  const [showLoading, setShowLoading] = useState(true);
+  const finishLoading = useCallback(() => setShowLoading(false), []);
 
   useEffect(() => {
     if (loaded || error) SplashScreen.hideAsync();
@@ -32,7 +35,8 @@ export default function RootLayout() {
   if (!loaded && !error) return null;
 
   return (
-    <SQLiteProvider databaseName="goshuin.db" onInit={migrateDbIfNeeded}>
+    <>
+      <SQLiteProvider databaseName="goshuin.db" onInit={migrateDbIfNeeded}>
       <StatusBar style="dark" />
       <Stack
         screenOptions={{
@@ -52,6 +56,8 @@ export default function RootLayout() {
         <Stack.Screen name="books/index" options={{ title: '御朱印帳' }} />
         <Stack.Screen name="books/[id]" options={{ title: '帳の名前と並び順' }} />
       </Stack>
-    </SQLiteProvider>
+      </SQLiteProvider>
+      {showLoading && <KamiLoadingScreen onFinish={finishLoading} />}
+    </>
   );
 }

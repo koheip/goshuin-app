@@ -7,6 +7,7 @@ import { Alert, FlatList, Platform, Pressable, StyleSheet, Text, View } from 're
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { PlaceMark } from '@/components/shrine';
+import { KamiLoadingScreen } from '@/components/KamiLoadingScreen';
 import { Button, DreamyBackground, ScreenTitle } from '@/components/ui';
 import { listMappedPlaces, type MappedPlace } from '@/db/repo';
 import { PLACE_KIND_LABEL } from '@/db/types';
@@ -46,7 +47,7 @@ export default function MapScreen() {
         <Text style={styles.sub}>位置を記録した神社・お寺が並びます</Text>
       </View>
 
-      {places === null ? null : places.length === 0 ? (
+      {places === null ? <KamiLoadingScreen variant="loading" message="めぐった場所を結んでいます…" /> : places.length === 0 ? (
         <View style={styles.empty}>
           <PlaceMark kind="shrine" size={64} />
           <Text style={styles.emptyTitle}>まだ地図に並ぶ場所はありません</Text>
