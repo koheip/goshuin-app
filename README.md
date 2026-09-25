@@ -46,6 +46,7 @@ npx expo start
 ```bash
 npx tsc --noEmit   # 型チェック
 npx expo lint      # Lint
+npm test           # テスト（Jest）
 npx expo-doctor    # 依存関係と設定の診断
 ```
 
