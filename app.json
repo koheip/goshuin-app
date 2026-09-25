@@ -53,6 +53,13 @@
         }
       ],
       "expo-maps"
-    ]
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "a276c60f-1a5e-4b18-83bc-e5a3d9618bd2"
+      }
+    },
+    "owner": "koheip"
   }
 }
