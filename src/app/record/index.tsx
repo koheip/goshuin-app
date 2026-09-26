@@ -1,5 +1,5 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useEffect, useState } from 'react';
 import {
@@ -19,7 +19,7 @@ import { LocationButton } from '@/components/LocationButton';
 import { PlaceSearch } from '@/components/PlaceSearch';
 import { PlaceMark } from '@/components/shrine';
 import { Button, Chip, ChipGroup, Field, FieldLabel, Stepper } from '@/components/ui';
-import { createShrine, searchShrines, type ShrineWithStats } from '@/db/repo';
+import { createShrine, listLinkedShrines, searchShrines, type ShrineWithStats } from '@/db/repo';
 import { PLACE_KIND_LABEL, type PlaceKind } from '@/db/types';
 import { formatDot } from '@/lib/dates';
 import type { Coords } from '@/lib/location';
@@ -31,6 +31,7 @@ export default function SelectShrineScreen() {
   const db = useSQLiteContext();
   const insets = useSafeAreaInsets();
   const { draft, update } = useDraft();
+  const params = useLocalSearchParams<{ placeId?: string; name?: string; kind?: string }>();
 
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<ShrineWithStats[] | null>(null);
@@ -42,6 +43,31 @@ export default function SelectShrineScreen() {
   const [newCoords, setNewCoords] = useState<Coords | null>(null);
   const [newPlaceId, setNewPlaceId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+
+  // 近くの神社から来たときは、つなげた神社があれば選び、なければ追加フォームに入れておく
+  useEffect(() => {
+    if (!params.placeId || !params.name) return;
+    const { placeId, name } = params;
+    const kind: PlaceKind = params.kind === 'temple' ? 'temple' : 'shrine';
+    let active = true;
+    listLinkedShrines(db).then((rows) => {
+      if (!active) return;
+      const shrine = rows.find((r) => r.placeId === placeId);
+      if (shrine) {
+        update({ shrine: { id: shrine.id, name: shrine.name, kind: shrine.kind } });
+        return;
+      }
+      setAdding(true);
+      setNewName(name);
+      setNewKind(kind);
+      setNewPlaceId(placeId);
+    });
+    return () => {
+      active = false;
+    };
+    // 開いたときに1回だけ反映する
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     let active = true;

@@ -13,6 +13,7 @@ import { listMappedPlaces, type MappedPlace } from '@/db/repo';
 import { PLACE_KIND_LABEL } from '@/db/types';
 import { formatDot } from '@/lib/dates';
 import { openInGoogleMaps } from '@/lib/maps';
+import { placesSearchEnabled } from '@/lib/places';
 import { colors, fonts, glow, radius } from '@/theme';
 
 // アプリ内の地図は開発ビルドだけで使える（Expo Go と Web には expo-maps が入っていない）
@@ -45,6 +46,15 @@ export default function MapScreen() {
       <View style={styles.header}>
         <ScreenTitle>地図</ScreenTitle>
         <Text style={styles.sub}>位置を記録した神社・お寺が並びます</Text>
+        {placesSearchEnabled && (
+          <Button
+            label="近くの神社・お寺を探す"
+            variant="secondary"
+            onPress={() => router.push('/nearby')}
+            icon={<Ionicons name="compass-outline" size={18} color={colors.ink} />}
+            style={styles.nearby}
+          />
+        )}
       </View>
 
       {places === null ? <KamiLoadingScreen variant="loading" message="めぐった場所を結んでいます…" /> : places.length === 0 ? (
@@ -138,6 +148,7 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.paper },
   header: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 12, gap: 4 },
   sub: { fontFamily: fonts.regular, fontSize: 13, color: colors.muted },
+  nearby: { marginTop: 8 },
   mapWrap: { flex: 1, overflow: 'hidden', borderTopLeftRadius: radius.lg, borderTopRightRadius: radius.lg },
   list: { padding: 16, gap: 12 },
   notice: { marginBottom: 4, fontFamily: fonts.regular, fontSize: 13, lineHeight: 20, color: colors.inkSoft },

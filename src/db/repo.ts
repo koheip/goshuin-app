@@ -132,6 +132,19 @@ export async function searchShrines(db: SQLiteDatabase, query: string): Promise<
   );
 }
 
+// Google マップの場所とつなげた神社・お寺（近くの神社で「記録済み」を見分けるのに使う）
+export async function listLinkedShrines(db: SQLiteDatabase): Promise<ShrineWithStats[]> {
+  return db.getAllAsync<ShrineWithStats>(
+    `SELECT ${SHRINE_COLUMNS},
+       COUNT(v.id) AS visitCount,
+       MAX(v.visited_on) AS lastVisitedOn
+     FROM shrines s
+     LEFT JOIN visits v ON v.shrine_id = s.id
+     WHERE s.place_id IS NOT NULL
+     GROUP BY s.id`,
+  );
+}
+
 export async function createShrine(
   db: SQLiteDatabase,
   input: {
