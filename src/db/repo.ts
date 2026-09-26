@@ -62,6 +62,39 @@ export async function setTutorialComplete(db: SQLiteDatabase, complete: boolean)
   );
 }
 
+export type ReminderPreferences = {
+  enabled: boolean;
+  weekday: number;
+  hour: number;
+  minute: number;
+  notificationId: string | null;
+};
+
+const defaultReminder: ReminderPreferences = { enabled: false, weekday: 7, hour: 9, minute: 0, notificationId: null };
+
+export async function getReminderPreferences(db: SQLiteDatabase): Promise<ReminderPreferences> {
+  const row = await db.getFirstAsync<{ value: string }>(
+    'SELECT value FROM app_settings WHERE key = ?',
+    'visit_reminder',
+  );
+  if (!row) return defaultReminder;
+  try {
+    return { ...defaultReminder, ...JSON.parse(row.value) };
+  } catch {
+    return defaultReminder;
+  }
+}
+
+export async function saveReminderPreferences(db: SQLiteDatabase, preferences: ReminderPreferences): Promise<void> {
+  await db.runAsync(
+    `INSERT INTO app_settings (key, value, updated_at) VALUES (?, ?, ?)
+     ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at`,
+    'visit_reminder',
+    JSON.stringify(preferences),
+    new Date().toISOString(),
+  );
+}
+
 // HOME・図鑑などで使う、これまでのめぐり全体の集計
 export async function getJourneyStats(db: SQLiteDatabase): Promise<JourneyStats> {
   return (

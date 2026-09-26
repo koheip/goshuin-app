@@ -5,7 +5,7 @@ import { Animated, Easing, ImageBackground, StyleSheet, Text, useWindowDimension
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Torii } from '@/components/shrine';
-import { PixelWordmark, Sparkle } from '@/components/ui';
+import { PixelWordmark } from '@/components/ui';
 import { colors, fonts, glow } from '@/theme';
 
 const hero = require('../../assets/kami-megu-home-hero.png');
@@ -25,7 +25,6 @@ type KamiLoadingScreenProps = {
 export function KamiLoadingScreen({ onFinish, variant = 'startup', message }: KamiLoadingScreenProps) {
   const [logo] = useState(() => new Animated.Value(0));
   const [progress] = useState(() => new Animated.Value(0));
-  const [ready] = useState(() => new Animated.Value(0));
   const [screen] = useState(() => new Animated.Value(1));
   const [progressLabel, setProgressLabel] = useState(0);
 
@@ -50,10 +49,6 @@ export function KamiLoadingScreen({ onFinish, variant = 'startup', message }: Ka
       entrance,
       Animated.timing(progress, { toValue: 1, duration: 2500, easing: Easing.out(Easing.cubic), useNativeDriver: false }),
       Animated.sequence([
-        Animated.delay(2050),
-        Animated.timing(ready, { toValue: 1, duration: 380, useNativeDriver: true }),
-      ]),
-      Animated.sequence([
         Animated.delay(3100),
         Animated.timing(screen, { toValue: 0, duration: 420, useNativeDriver: true }),
       ]),
@@ -63,7 +58,7 @@ export function KamiLoadingScreen({ onFinish, variant = 'startup', message }: Ka
       startup.stop();
       progress.removeListener(listener);
     };
-  }, [logo, onFinish, progress, ready, screen, variant]);
+  }, [logo, onFinish, progress, screen, variant]);
 
   const logoScale = logo.interpolate({ inputRange: [0, 1], outputRange: [.82, 1] });
   const barWidth = progress.interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'] });
@@ -86,13 +81,6 @@ export function KamiLoadingScreen({ onFinish, variant = 'startup', message }: Ka
             <Text style={styles.percent}>{progressLabel}%</Text>
           </View>
 
-          {variant === 'startup' && (
-            <Animated.View style={[styles.ready, { opacity: ready, transform: [{ translateY: ready.interpolate({ inputRange: [0, 1], outputRange: [12, 0] }) }] }] }>
-              <Sparkle size={15} color={colors.violet} />
-              <Text style={styles.readyText}>ようこそ、カミめぐへ。</Text>
-              <Sparkle size={15} color={colors.accent} />
-            </Animated.View>
-          )}
         </SafeAreaView>
       </ImageBackground>
     </Animated.View>
@@ -143,8 +131,6 @@ const styles = StyleSheet.create({
   track: { width: '100%', height: 12, padding: 2, overflow: 'hidden', borderRadius: 6, backgroundColor: 'rgba(255,255,255,.74)', borderWidth: 1, borderColor: '#FFFFFF', boxShadow: glow.soft },
   fill: { height: '100%', minWidth: 8, borderRadius: 4, backgroundColor: colors.accent },
   percent: { fontFamily: fonts.regular, fontSize: 12, color: colors.inkSoft },
-  ready: { position: 'absolute', left: 38, right: 38, bottom: 62, minHeight: 58, borderRadius: 29, backgroundColor: 'rgba(255,255,255,.9)', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, boxShadow: glow.pink },
-  readyText: { fontFamily: fonts.display, fontSize: 15, color: colors.ink },
   symbol: { position: 'absolute', top: 0, zIndex: 2, opacity: .82 },
   shide: { width: 22, height: 31 },
   shideOne: { position: 'absolute', top: 0, left: 6, width: 13, height: 9, backgroundColor: '#FFFFFF', transform: [{ skewX: '-18deg' }] },

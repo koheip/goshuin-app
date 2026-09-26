@@ -10,6 +10,7 @@ import {
   getEntry,
   getAvatarPreferences,
   getJourneyStats,
+  getReminderPreferences,
   listBookEntries,
   listBooks,
   listMappedPlaces,
@@ -18,6 +19,7 @@ import {
   saveVisit,
   searchShrines,
   saveAvatarPreferences,
+  saveReminderPreferences,
   setShrineLocation,
   startNewBook,
   updateEntry,
@@ -69,6 +71,12 @@ describe('migrateDbIfNeeded', () => {
     });
     await saveAvatarPreferences(db, { blessing: 'susanoo', equipment: ['magatama', 'sakaki'] });
     expect(await getAvatarPreferences(db)).toEqual({ blessing: 'susanoo', equipment: ['magatama', 'sakaki'] });
+  });
+
+  it('参拝リマインダーの設定を保存できる', async () => {
+    expect(await getReminderPreferences(db)).toEqual({ enabled: false, weekday: 7, hour: 9, minute: 0, notificationId: null });
+    await saveReminderPreferences(db, { enabled: true, weekday: 2, hour: 8, minute: 30, notificationId: 'reminder-1' });
+    expect(await getReminderPreferences(db)).toEqual({ enabled: true, weekday: 2, hour: 8, minute: 30, notificationId: 'reminder-1' });
   });
 
   it('版1のデータは、参拝日の古い順に帳の並び順を振り直す', async () => {

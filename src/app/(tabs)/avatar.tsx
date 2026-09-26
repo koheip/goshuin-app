@@ -1,6 +1,6 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useFocusEffect } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useCallback, useMemo, useState } from 'react';
 import { Alert, Image, ImageBackground, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -180,6 +180,7 @@ export default function AvatarScreen() {
         </View>
 
         <Button label="この姿にする" onPress={save} loading={saving} icon={<Ionicons name="sparkles" size={18} color="#FFFFFF" />} />
+        <Pressable accessibilityRole="button" onPress={() => router.push('/reminder')} style={styles.reminderLink}><View style={styles.reminderLinkIcon}><Ionicons name="notifications-outline" size={20} color={colors.accent} /></View><View style={styles.reminderLinkCopy}><Text style={styles.reminderLinkTitle}>参拝リマインダー</Text><Text style={styles.reminderLinkText}>曜日と時刻を決めて、ご縁をお知らせ</Text></View><Ionicons name="chevron-forward" size={18} color={colors.muted} /></Pressable>
         <Pressable accessibilityRole="button" onPress={replayTutorial} style={styles.tutorialReplay}><Ionicons name="help-circle-outline" size={17} color={colors.violet} /><Text style={styles.tutorialReplayText}>チュートリアルをもう一度見る</Text></Pressable>
       </ScrollView>
     </SafeAreaView>
@@ -210,4 +211,5 @@ const styles = StyleSheet.create({
   equipmentGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 }, equipmentCard: { width: '23%', minHeight: 82, padding: 7, alignItems: 'center', justifyContent: 'center', gap: 5, borderRadius: 16, backgroundColor: 'rgba(255,255,255,.8)', borderWidth: 1.5, borderColor: colors.line, position: 'relative' }, equipmentSelected: { borderColor: colors.accent, backgroundColor: colors.accentTint }, locked: { opacity: .45 },
   itemIcon: { width: 48, height: 48, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: '#FFFFFF' }, itemArtwork: { width: 45, height: 45 }, itemName: { fontFamily: fonts.bold, fontSize: 9, color: colors.ink, textAlign: 'center' }, check: { position: 'absolute', top: 4, right: 4, width: 18, height: 18, borderRadius: 9, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.accent },
   tutorialReplay: { minHeight: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }, tutorialReplayText: { fontFamily: fonts.bold, fontSize: 11, color: colors.violet },
+  reminderLink: { minHeight: 70, padding: 12, flexDirection: 'row', alignItems: 'center', gap: 10, borderRadius: 20, backgroundColor: 'rgba(255,255,255,.78)', borderWidth: 1, borderColor: colors.line }, reminderLinkIcon: { width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.accentTint }, reminderLinkCopy: { flex: 1 }, reminderLinkTitle: { fontFamily: fonts.bold, fontSize: 12, color: colors.ink }, reminderLinkText: { marginTop: 2, fontFamily: fonts.regular, fontSize: 9, color: colors.muted },
 });
