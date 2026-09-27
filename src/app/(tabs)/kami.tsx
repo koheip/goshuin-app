@@ -1,6 +1,6 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { router, useFocusEffect } from 'expo-router';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useCallback, useMemo, useState } from 'react';
 import { FlatList, Image, ImageBackground, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -9,21 +9,14 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { DreamyBackground, Sparkle } from '@/components/ui';
 import { KamiLoadingScreen } from '@/components/KamiLoadingScreen';
 import { getJourneyStats, listVisitedShrines, type JourneyStats, type ShrineCatalogEntry } from '@/db/repo';
-import { formatDot } from '@/lib/dates';
-import { imageUri } from '@/lib/images';
-import { colors, fonts, glow, gradients, radius } from '@/theme';
+import { lineageOf, LINEAGES } from '@/lineage/catalog';
+import { KAMI_BACKGROUNDS } from '@/lineage/images';
+import { colors, fonts, glow, radius } from '@/theme';
 
 const sprite = require('../../../assets/kami-catalog-sprite.png');
 type Filter = 'all' | 'found' | 'locked';
 type Catalog = 'kami' | 'shrine';
 type Kami = { id: 'amaterasu' | 'susanoo' | 'okuninushi' | 'inari'; name: string; reading: string; blessing: string; threshold: number; cell: 0 | 1 | 2 | 3; title: string; story: string; mythTitle: string; myth: string[]; symbols: string[]; worship: string };
-
-const backgrounds = {
-  amaterasu: require('../../../assets/blessing-amaterasu.png'),
-  susanoo: require('../../../assets/blessing-susanoo.png'),
-  okuninushi: require('../../../assets/blessing-okuninushi.png'),
-  inari: require('../../../assets/blessing-inari.png'),
-};
 
 const KAMI: Kami[] = [
   { id: 'amaterasu', name: 'アマテラス', reading: '天照大御神', blessing: '光と導き', threshold: 0, cell: 0, title: '日の光で世界を照らす神さま', story: '神々の世界を治める日の神として伝えられ、伊勢神宮の皇大神宮（内宮）にお祀りされています。八咫鏡は天照大御神の御神体として大切にされています。', mythTitle: '天の岩戸', myth: ['弟神スサノオの振る舞いを悲しんだ天照大御神は、天の岩戸にお隠れになります。太陽の神が姿を消すと、高天原も地上も暗闇に包まれました。', '八百万の神々は岩戸の前で祭りを行い、天宇受売命が舞い、鏡を差し出します。にぎわいを不思議に思った大御神が戸を開くと、天手力男神が外へお迎えし、世界に再び光が戻りました。'], symbols: ['太陽', '八咫鏡', '光'], worship: '伊勢神宮・神明神社' },
@@ -35,11 +28,12 @@ const KAMI: Kami[] = [
 export default function KamiScreen() {
   const db = useSQLiteContext();
   const [stats, setStats] = useState<JourneyStats | null>(null);
-  const [catalog, setCatalog] = useState<Catalog>('kami');
-  const [shrines, setShrines] = useState<ShrineCatalogEntry[]>([]);
   const [filter, setFilter] = useState<Filter>('all');
   const [selected, setSelected] = useState<Kami | null>(null);
-  const [selectedShrine, setSelectedShrine] = useState<ShrineCatalogEntry | null>(null);
+  const [catalog, setCatalog] = useState<Catalog>('kami');
+  const [shrines, setShrines] = useState<ShrineCatalogEntry[]>([]);
+  // 神社図鑑の「神さま図鑑で見る」から、その神さまを開いた状態で来る
+  const { open } = useLocalSearchParams<{ open?: string }>();
 
   useFocusEffect(useCallback(() => {
     let active = true;
@@ -47,9 +41,24 @@ export default function KamiScreen() {
       if (!active) return;
       setStats(value);
       setShrines(visited);
+      if (open) {
+        const kami = KAMI.find((item) => item.id === open);
+        setCatalog('kami');
+        if (kami && value.visitCount >= kami.threshold) setSelected(kami);
+        router.setParams({ open: undefined });
+      }
     });
     return () => { active = false; };
-  }, [db]));
+  }, [db, open]));
+
+  const shrinesByLineage = useMemo(() => {
+    const result = new Map<string, ShrineCatalogEntry[]>();
+    for (const shrine of shrines) {
+      const lineage = lineageOf(shrine);
+      if (lineage) result.set(lineage.id, [...(result.get(lineage.id) ?? []), shrine]);
+    }
+    return result;
+  }, [shrines]);
 
   const visits = stats?.visitCount ?? 0;
   const foundCount = KAMI.filter((kami) => visits >= kami.threshold).length;
@@ -68,15 +77,15 @@ export default function KamiScreen() {
       <DreamyBackground />
       {stats === null && <KamiLoadingScreen variant="loading" message="神さまとのご縁をたどっています…" />}
       <View style={styles.catalogSwitch} accessibilityRole="tablist">
-        {([['kami', '神さま'], ['shrine', '神社']] as const).map(([value, label]) => <Pressable key={value} accessibilityRole="tab" accessibilityState={{ selected: catalog === value }} onPress={() => setCatalog(value)} style={[styles.catalogTab, catalog === value && styles.catalogTabActive]}><Ionicons name={value === 'kami' ? 'sparkles-outline' : 'business-outline'} size={16} color={catalog === value ? '#FFFFFF' : colors.violet} /><Text style={[styles.catalogTabText, catalog === value && styles.catalogTabTextActive]}>{label}</Text></Pressable>)}
+        {([['kami', '神さま', 'sparkles-outline'], ['shrine', '神社', 'book-outline']] as const).map(([value, label, icon]) => <Pressable key={value} accessibilityRole="tab" accessibilityState={{ selected: catalog === value }} onPress={() => setCatalog(value)} style={[styles.catalogTab, catalog === value && styles.catalogTabActive]}><Ionicons name={icon} size={16} color={catalog === value ? '#FFFFFF' : colors.violet} /><Text style={[styles.catalogTabText, catalog === value && styles.catalogTabTextActive]}>{label}</Text></Pressable>)}
       </View>
       <View style={styles.header}>
-        <View>
-          <Text style={styles.kicker}>{catalog === 'kami' ? 'KAMI COLLECTION' : 'SHRINE COLLECTION'}</Text>
+        <View style={styles.headerText}>
+          <Text style={styles.kicker}>{catalog === 'kami' ? 'KAMI COLLECTION' : 'SHRINE ENCYCLOPEDIA'}</Text>
           <View style={styles.titleRow}><Text style={styles.title}>{catalog === 'kami' ? '神さま図鑑' : '神社図鑑'}</Text><Sparkle size={18} /></View>
-          <Text style={styles.sub}>{catalog === 'kami' ? 'めぐるほど、神さまとのご縁がひらきます' : '参拝した神社が、思い出と一緒に残ります'}</Text>
+          <Text style={styles.sub}>{catalog === 'kami' ? 'めぐるほど、神さまとのご縁がひらきます' : '神社のなりたちや、神話とのつながりを知ろう'}</Text>
         </View>
-        <View style={styles.count}><Text style={styles.countValue}>{catalog === 'kami' ? foundCount : shrines.length}</Text><Text style={styles.countLabel}>{catalog === 'kami' ? `/ ${KAMI.length}` : ' 社'}</Text></View>
+        {catalog === 'kami' && <View style={styles.count}><Text style={styles.countValue}>{foundCount}</Text><Text style={styles.countLabel}>{`/ ${KAMI.length}`}</Text></View>}
       </View>
 
       {catalog === 'kami' && <View style={styles.filters} accessibilityRole="tablist">
@@ -118,23 +127,32 @@ export default function KamiScreen() {
           );
         }}
       /> : <FlatList
-        key="shrine-catalog-list"
-        data={shrines}
+        key="lineage-list"
+        data={LINEAGES}
         keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.shrineList}
-        ListEmptyComponent={<View style={styles.shrineEmpty}><View style={styles.shrineEmptyIcon}><Ionicons name="business-outline" size={35} color={colors.accent} /></View><Text style={styles.shrineEmptyTitle}>参拝した神社がここに並びます</Text><Text style={styles.shrineEmptyText}>地図で神社を探して参拝を記録すると、自動で神社図鑑に加わります。</Text><Pressable accessibilityRole="button" onPress={() => router.push('/map')} style={styles.shrineEmptyButton}><Text style={styles.shrineEmptyButtonText}>神社を探す</Text><Ionicons name="arrow-forward" size={16} color="#FFFFFF" /></Pressable></View>}
-        renderItem={({ item }) => <Pressable accessibilityRole="button" accessibilityLabel={`${item.name}の図鑑を開く`} onPress={() => setSelectedShrine(item)} style={({ pressed }) => [styles.shrineCard, pressed && styles.pressed]}>
-          {item.latestImageFile ? <Image source={{ uri: imageUri(item.latestImageFile) }} style={styles.shrineImage} resizeMode="cover" /> : <LinearGradient colors={gradients.sky} style={styles.shrineImagePlaceholder}><Ionicons name="business" size={39} color={colors.accent} /></LinearGradient>}
-          <View style={styles.shrineCardBody}><View style={styles.shrineCardTop}><Text style={styles.shrineName} numberOfLines={1}>{item.name}</Text><View style={styles.visitBadge}><Ionicons name="heart" size={11} color={colors.accent} /><Text style={styles.visitBadgeText}>{item.visitCount}</Text></View></View><Text style={styles.shrineMeta} numberOfLines={1}>{item.prefecture ?? item.address ?? '所在地未登録'}</Text><Text style={styles.shrineDate}>最終参拝 {item.lastVisitedOn ? formatDot(item.lastVisitedOn) : '—'}</Text></View>
-          <Ionicons name="chevron-forward" size={19} color={colors.violet} />
-        </Pressable>}
+        contentContainerStyle={styles.lineageList}
+        ListFooterComponent={<Text style={styles.lineageNote}>全国の神社の多くは、大きな神社（総本社）から神さまを分けてお祀りしています。系統を知ると、近所の小さな神社のなりたちも見えてきます。</Text>}
+        renderItem={({ item }) => {
+          const visited = shrinesByLineage.get(item.id) ?? [];
+          return (
+            <Pressable accessibilityRole="button" accessibilityLabel={`${item.name}。御祭神は${item.deity}。詳しく見る`} onPress={() => router.push({ pathname: '/lineage/[id]', params: { id: item.id } })} style={({ pressed }) => [styles.lineageCard, pressed && styles.pressed]}>
+              <ImageBackground source={KAMI_BACKGROUNDS[item.kamiId]} resizeMode="cover" style={styles.lineageImage} imageStyle={styles.lineageImageInner}>
+                <LinearGradient colors={['rgba(20,13,45,0)', 'rgba(20,13,45,.85)']} style={StyleSheet.absoluteFill} />
+                <View style={styles.lineageMythState}><Ionicons name={visited.length > 0 ? 'lock-open' : 'lock-closed'} size={11} color="#FFFFFF" /><Text style={styles.lineageMythStateText}>{visited.length > 0 ? '神話 解放' : '神話 未解放'}</Text></View>
+                <Text style={styles.lineageName}>{item.name}</Text>
+              </ImageBackground>
+              <View style={styles.lineageBody}>
+                <Text style={styles.lineageDeity} numberOfLines={1}>御祭神　{item.deity}</Text>
+                <Text style={styles.lineageSummary} numberOfLines={2}>{item.summary}</Text>
+                <Text style={[styles.lineageVisited, visited.length === 0 && styles.muted]} numberOfLines={1}>{visited.length > 0 ? `参拝した神社：${visited.map((shrine) => shrine.name).join('、')}` : '参拝すると神話の章がひらきます'}</Text>
+              </View>
+            </Pressable>
+          );
+        }}
       />}
 
       <Modal visible={selected !== null} animationType="slide" presentationStyle="fullScreen" onRequestClose={() => setSelected(null)}>
         {selected && <KamiDetail kami={selected} visits={visits} onClose={() => setSelected(null)} />}
-      </Modal>
-      <Modal visible={selectedShrine !== null} animationType="slide" presentationStyle="fullScreen" onRequestClose={() => setSelectedShrine(null)}>
-        {selectedShrine && <ShrineDetail shrine={selectedShrine} onClose={() => setSelectedShrine(null)} />}
       </Modal>
     </SafeAreaView>
   );
@@ -145,7 +163,7 @@ function KamiDetail({ kami, visits, onClose }: { kami: Kami; visits: number; onC
 
   return <View style={styles.detailScreen}>
     <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.detailContent}>
-      <ImageBackground source={backgrounds[kami.id]} resizeMode="cover" style={styles.detailHero} imageStyle={styles.detailHeroImage}>
+      <ImageBackground source={KAMI_BACKGROUNDS[kami.id]} resizeMode="cover" style={styles.detailHero} imageStyle={styles.detailHeroImage}>
         <LinearGradient colors={['rgba(20,13,45,.08)', 'rgba(20,13,45,.2)', 'rgba(20,13,45,.92)']} locations={[0, .48, 1]} style={StyleSheet.absoluteFill} />
         <View style={[styles.detailSafe, { paddingTop: Math.max(insets.top, 12) }]}><View style={styles.detailTop}><Pressable accessibilityRole="button" accessibilityLabel="図鑑へ戻る" hitSlop={10} onPress={onClose} style={styles.detailClose}><Ionicons name="chevron-back" size={24} color="#FFFFFF" /></Pressable><Text style={styles.detailNumber}>KAMI No.{String(kami.cell + 1).padStart(2, '0')}</Text></View></View>
         <View style={styles.detailPortrait}><KamiPortrait cell={kami.cell} locked={false} /></View>
@@ -173,31 +191,6 @@ function KamiDetail({ kami, visits, onClose }: { kami: Kami; visits: number; onC
   </View>;
 }
 
-function ShrineDetail({ shrine, onClose }: { shrine: ShrineCatalogEntry; onClose: () => void }) {
-  const insets = useSafeAreaInsets();
-  const location = [shrine.prefecture, shrine.address].filter((value, index, all) => value && all.indexOf(value) === index).join(' ');
-  return <View style={styles.shrineDetailScreen}>
-    <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.shrineDetailContent}>
-      <View style={styles.shrineDetailHero}>
-        {shrine.latestImageFile ? <Image source={{ uri: imageUri(shrine.latestImageFile) }} style={StyleSheet.absoluteFill} resizeMode="cover" /> : <LinearGradient colors={gradients.sky} style={StyleSheet.absoluteFill} />}
-        <LinearGradient colors={['rgba(38,25,75,.08)', 'rgba(38,25,75,.3)', 'rgba(38,25,75,.92)']} style={StyleSheet.absoluteFill} />
-        <View style={[styles.shrineDetailTop, { paddingTop: Math.max(insets.top, 12) }]}><Pressable accessibilityRole="button" accessibilityLabel="神社図鑑へ戻る" onPress={onClose} style={styles.detailClose}><Ionicons name="chevron-back" size={24} color="#FFFFFF" /></Pressable><Text style={styles.detailNumber}>VISITED SHRINE</Text></View>
-        {!shrine.latestImageFile && <View style={styles.heroTorii}><Ionicons name="business" size={76} color="rgba(255,255,255,.9)" /></View>}
-        <View style={styles.shrineDetailHeading}><Text style={styles.detailReading}>{shrine.kana ?? (shrine.kind === 'temple' ? 'TEMPLE' : 'SHRINE')}</Text><Text style={styles.shrineDetailName}>{shrine.name}</Text><View style={styles.detailBlessing}><Ionicons name="location" size={13} color="#FFFFFF" /><Text style={styles.detailBlessingText}>{location || '所在地未登録'}</Text></View></View>
-      </View>
-      <View style={styles.detailBody}>
-        <View style={styles.discovery}><View style={styles.discoveryIcon}><Ionicons name="footsteps" size={18} color="#FFFFFF" /></View><View><Text style={styles.discoveryLabel}>{shrine.visitCount}回、この場所へ参拝しました</Text><Text style={styles.discoveryText}>最終参拝 {shrine.lastVisitedOn ? formatDot(shrine.lastVisitedOn) : '—'}</Text></View></View>
-        <Text style={styles.detailTitle}>あなたの神社図鑑</Text>
-        <Text style={styles.detailStory}>このページは、あなたの参拝記録から自動で作られています。同じ神社を再訪すると、参拝回数と最新の思い出が更新されます。</Text>
-        {shrine.latestMemo ? <View style={styles.mythCard}><View style={styles.mythHeader}><View style={styles.mythIcon}><Ionicons name="chatbubble-ellipses-outline" size={20} color={colors.violet} /></View><View style={styles.mythHeading}><Text style={styles.mythKicker}>LATEST MEMORY</Text><Text style={styles.mythTitle}>最近の参拝メモ</Text></View></View><View style={styles.mythRule} /><Text style={styles.mythParagraph}>{shrine.latestMemo}</Text></View> : null}
-        <View style={styles.infoCard}><View style={styles.infoIcon}><Ionicons name="map-outline" size={19} color={colors.accent} /></View><View style={styles.infoCopy}><Text style={styles.infoLabel}>所在地</Text><Text style={styles.infoValue}>{location || 'まだ登録されていません'}</Text></View></View>
-        <Pressable accessibilityRole="button" onPress={() => { onClose(); router.push('/book'); }} style={styles.openRecords}><Ionicons name="book-outline" size={18} color="#FFFFFF" /><Text style={styles.openRecordsText}>参拝記録・御朱印を見る</Text></Pressable>
-        <Text style={styles.note}>由緒・御祭神などの公式情報は、正確性を確認できる情報源と連携してから追加できる設計です。</Text>
-      </View>
-    </ScrollView>
-  </View>;
-}
-
 function KamiPortrait({ cell, locked }: { cell: 0 | 1 | 2 | 3; locked: boolean }) {
   const top = cell > 1 ? '-100%' : '0%';
   const left = cell % 2 ? '-100%' : '0%';
@@ -213,6 +206,18 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.paper },
   catalogSwitch: { marginHorizontal: 20, marginTop: 10, padding: 4, flexDirection: 'row', borderRadius: 22, backgroundColor: 'rgba(255,255,255,.74)', borderWidth: 1, borderColor: colors.line },
   catalogTab: { flex: 1, minHeight: 40, borderRadius: 19, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }, catalogTabActive: { backgroundColor: colors.violet, boxShadow: glow.soft }, catalogTabText: { fontFamily: fonts.bold, fontSize: 12, color: colors.inkSoft }, catalogTabTextActive: { color: '#FFFFFF' },
+  headerText: { flex: 1 },
+  lineageList: { paddingHorizontal: 16, paddingBottom: 28, gap: 12 },
+  lineageCard: { overflow: 'hidden', borderRadius: radius.md, backgroundColor: 'rgba(255,255,255,.9)', borderWidth: 1, borderColor: colors.line, boxShadow: glow.soft },
+  lineageImage: { height: 120, justifyContent: 'flex-end', padding: 14 }, lineageImageInner: { opacity: .95 },
+  lineageMythState: { position: 'absolute', top: 12, right: 12, paddingHorizontal: 9, paddingVertical: 5, flexDirection: 'row', alignItems: 'center', gap: 4, borderRadius: 12, backgroundColor: 'rgba(23,15,52,.5)', borderWidth: 1, borderColor: 'rgba(255,255,255,.5)' },
+  lineageMythStateText: { fontFamily: fonts.bold, fontSize: 9, color: '#FFFFFF' },
+  lineageName: { fontFamily: fonts.displayHeavy, fontSize: 22, color: '#FFFFFF', textShadowColor: 'rgba(0,0,0,.6)', textShadowRadius: 6 },
+  lineageBody: { padding: 14, gap: 5 },
+  lineageDeity: { fontFamily: fonts.bold, fontSize: 11, color: colors.violet },
+  lineageSummary: { fontFamily: fonts.regular, fontSize: 12, lineHeight: 19, color: colors.inkSoft },
+  lineageVisited: { fontFamily: fonts.bold, fontSize: 11, color: colors.accent },
+  lineageNote: { marginTop: 4, paddingHorizontal: 4, fontFamily: fonts.regular, fontSize: 11, lineHeight: 18, color: colors.muted },
   header: { paddingHorizontal: 20, paddingTop: 12, paddingBottom: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   kicker: { fontFamily: fonts.bold, fontSize: 10, letterSpacing: 2, color: colors.violet },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: 5 }, title: { fontFamily: fonts.displayHeavy, fontSize: 29, color: colors.ink },
@@ -233,11 +238,6 @@ const styles = StyleSheet.create({
   reading: { minHeight: 17, fontFamily: fonts.regular, fontSize: 10, color: colors.muted }, blessing: { fontFamily: fonts.bold, fontSize: 10, color: colors.accentOnTint },
   progress: { height: 4, marginTop: 4, overflow: 'hidden', borderRadius: 2, backgroundColor: colors.track }, progressFill: { height: '100%', borderRadius: 2, backgroundColor: colors.accent },
   empty: { padding: 32, textAlign: 'center', fontFamily: fonts.regular, color: colors.muted },
-  shrineList: { paddingHorizontal: 16, paddingBottom: 28, gap: 10 },
-  shrineCard: { minHeight: 106, padding: 9, flexDirection: 'row', alignItems: 'center', gap: 11, borderRadius: radius.md, backgroundColor: 'rgba(255,255,255,.86)', borderWidth: 1, borderColor: colors.line, boxShadow: glow.soft },
-  shrineImage: { width: 88, height: 88, borderRadius: 17, backgroundColor: colors.track }, shrineImagePlaceholder: { width: 88, height: 88, borderRadius: 17, alignItems: 'center', justifyContent: 'center' }, shrineCardBody: { flex: 1, gap: 5 }, shrineCardTop: { flexDirection: 'row', alignItems: 'center', gap: 6 }, shrineName: { flex: 1, fontFamily: fonts.display, fontSize: 16, color: colors.ink }, shrineMeta: { fontFamily: fonts.regular, fontSize: 10, color: colors.muted }, shrineDate: { fontFamily: fonts.bold, fontSize: 9, color: colors.violet }, visitBadge: { paddingHorizontal: 7, paddingVertical: 4, borderRadius: 10, flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: colors.accentTint }, visitBadgeText: { fontFamily: fonts.bold, fontSize: 9, color: colors.accentOnTint },
-  shrineEmpty: { paddingHorizontal: 28, paddingTop: 34, alignItems: 'center', gap: 10 }, shrineEmptyIcon: { width: 76, height: 76, borderRadius: 38, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.accentTint }, shrineEmptyTitle: { marginTop: 5, fontFamily: fonts.display, fontSize: 17, color: colors.ink, textAlign: 'center' }, shrineEmptyText: { fontFamily: fonts.regular, fontSize: 11, lineHeight: 19, color: colors.muted, textAlign: 'center' }, shrineEmptyButton: { marginTop: 8, minHeight: 46, paddingHorizontal: 20, borderRadius: 23, flexDirection: 'row', alignItems: 'center', gap: 7, backgroundColor: colors.accent }, shrineEmptyButtonText: { fontFamily: fonts.bold, fontSize: 12, color: '#FFFFFF' },
   detailScreen: { flex: 1, backgroundColor: colors.paper }, detailContent: { paddingBottom: 40 }, detailHero: { height: 520, justifyContent: 'flex-end', overflow: 'hidden' }, detailHeroImage: { opacity: .92 }, detailSafe: { position: 'absolute', zIndex: 5, elevation: 5, left: 0, right: 0, top: 0 }, detailTop: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }, detailClose: { width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(23,15,52,.44)', borderWidth: 1, borderColor: 'rgba(255,255,255,.55)' }, detailNumber: { fontFamily: fonts.bold, fontSize: 9, letterSpacing: 1.6, color: '#FFFFFF', textShadowColor: 'rgba(0,0,0,.7)', textShadowRadius: 5 }, detailPortrait: { position: 'absolute', width: 230, height: 230, borderRadius: 115, overflow: 'hidden', alignSelf: 'center', top: 92, borderWidth: 3, borderColor: 'rgba(255,255,255,.82)', boxShadow: glow.pink }, detailHeading: { padding: 22 }, detailReading: { fontFamily: fonts.bold, fontSize: 10, letterSpacing: 2, color: 'rgba(255,255,255,.75)' }, detailName: { fontFamily: fonts.displayHeavy, fontSize: 31, color: '#FFFFFF', textShadowColor: 'rgba(0,0,0,.65)', textShadowRadius: 8 }, detailBlessing: { alignSelf: 'flex-start', marginTop: 7, paddingHorizontal: 11, paddingVertical: 6, flexDirection: 'row', alignItems: 'center', gap: 5, borderRadius: 15, backgroundColor: 'rgba(255,255,255,.2)', borderWidth: 1, borderColor: 'rgba(255,255,255,.45)' }, detailBlessingText: { fontFamily: fonts.bold, fontSize: 10, color: '#FFFFFF' },
   detailBody: { padding: 20, gap: 13 }, discovery: { marginTop: -36, padding: 13, flexDirection: 'row', alignItems: 'center', gap: 10, borderRadius: 20, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: colors.line, boxShadow: glow.soft }, discoveryIcon: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.accent }, discoveryLabel: { fontFamily: fonts.bold, fontSize: 11, color: colors.ink }, discoveryText: { marginTop: 2, fontFamily: fonts.regular, fontSize: 9, color: colors.muted }, detailTitle: { marginTop: 8, fontFamily: fonts.display, fontSize: 20, lineHeight: 29, color: colors.ink }, detailStory: { fontFamily: fonts.regular, fontSize: 12, lineHeight: 22, color: colors.inkSoft }, mythCard: { marginVertical: 4, padding: 16, gap: 11, overflow: 'hidden', borderRadius: 22, backgroundColor: 'rgba(255,255,255,.78)', borderWidth: 1, borderColor: colors.lineStrong, boxShadow: glow.soft }, mythHeader: { flexDirection: 'row', alignItems: 'center', gap: 11 }, mythIcon: { width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.accentTint, borderWidth: 1, borderColor: colors.lineStrong }, mythHeading: { flex: 1, gap: 2 }, mythKicker: { fontFamily: fonts.bold, fontSize: 8, letterSpacing: 1.4, color: colors.violet }, mythTitle: { fontFamily: fonts.display, fontSize: 17, color: colors.ink }, mythRule: { width: 44, height: 2, borderRadius: 1, backgroundColor: colors.accent }, mythParagraph: { fontFamily: fonts.regular, fontSize: 12, lineHeight: 22, color: colors.inkSoft }, infoLabel: { fontFamily: fonts.bold, fontSize: 8, letterSpacing: 1.2, color: colors.violet }, symbols: { flexDirection: 'row', flexWrap: 'wrap', gap: 7 }, symbol: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 15, backgroundColor: colors.accentTint, borderWidth: 1, borderColor: colors.lineStrong }, symbolText: { fontFamily: fonts.bold, fontSize: 10, color: colors.accentOnTint }, infoCard: { padding: 14, flexDirection: 'row', alignItems: 'center', gap: 10, borderRadius: 19, backgroundColor: 'rgba(255,255,255,.8)', borderWidth: 1, borderColor: colors.line }, infoIcon: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.accentTint }, infoCopy: { flex: 1, gap: 3 }, infoValue: { fontFamily: fonts.bold, fontSize: 11, color: colors.ink }, note: { fontFamily: fonts.regular, fontSize: 9, lineHeight: 16, color: colors.muted },
-  shrineDetailScreen: { flex: 1, backgroundColor: colors.paper }, shrineDetailContent: { paddingBottom: 40 }, shrineDetailHero: { height: 470, justifyContent: 'flex-end', overflow: 'hidden', backgroundColor: colors.violet }, shrineDetailTop: { position: 'absolute', zIndex: 2, left: 0, right: 0, top: 0, paddingHorizontal: 16, paddingBottom: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }, heroTorii: { position: 'absolute', alignSelf: 'center', top: 150 }, shrineDetailHeading: { padding: 22, paddingBottom: 52 }, shrineDetailName: { marginTop: 2, fontFamily: fonts.displayHeavy, fontSize: 30, color: '#FFFFFF', textShadowColor: 'rgba(0,0,0,.65)', textShadowRadius: 8 }, openRecords: { minHeight: 50, borderRadius: 25, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, backgroundColor: colors.accent, boxShadow: glow.pink }, openRecordsText: { fontFamily: fonts.bold, fontSize: 12, color: '#FFFFFF' },
 });

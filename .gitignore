@@ -42,3 +42,6 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+# 中断したビルドの残り（android.incomplete-日付 など）
+/android.*/
+/ios.*/

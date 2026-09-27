@@ -50,7 +50,7 @@ type DraftContextValue = {
 
 const DraftContext = createContext<DraftContextValue | null>(null);
 
-// 記録の3ステップの間だけ入力内容を保持する
+// 記録の2ステップの間だけ入力内容を保持する
 export function DraftProvider({ children }: { children: ReactNode }) {
   const [draft, setDraft] = useState<Draft>(emptyDraft);
 

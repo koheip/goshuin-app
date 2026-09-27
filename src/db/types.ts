@@ -34,6 +34,8 @@ export type Shrine = {
   // 地図APIの place ID だけを保存する（詳細データは規約上保存しない）
   placeId: string | null;
   kind: PlaceKind;
+  // 系統（lineage/catalog.ts の id）。null は名前から自動で判断、'none' はどの系統でもない
+  lineage: string | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -120,4 +122,25 @@ export type VisitEntry = {
   latestGoshuinId: string | null;
   latestPhotoFile: string | null;
   latestImageFile: string | null;
+};
+
+// 1回の参拝の詳細。御朱印と写真をすべて含む
+export type VisitDetail = {
+  id: string;
+  visitedOn: string;
+  weather: string | null;
+  companions: string | null;
+  omikuji: string | null;
+  memo: string | null;
+  shrineId: string;
+  shrineName: string;
+  shrineKana: string | null;
+  shrineKind: PlaceKind;
+  prefecture: string | null;
+  address: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  placeId: string | null;
+  goshuin: { id: string; imageFile: string; kind: GoshuinKind; fee: number | null }[];
+  photos: { id: string; imageFile: string }[];
 };

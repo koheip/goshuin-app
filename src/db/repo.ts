@@ -1,7 +1,7 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 import { randomUUID } from 'expo-crypto';
 
-import type { Book, BookWithStats, GoshuinEntry, GoshuinKind, PlaceKind, Shrine, VisitEntry } from './types';
+import type { Book, BookWithStats, GoshuinEntry, GoshuinKind, PlaceKind, Shrine, VisitDetail, VisitEntry } from './types';
 
 export type ShrineWithStats = Shrine & {
   visitCount: number;
@@ -114,7 +114,7 @@ export async function getJourneyStats(db: SQLiteDatabase): Promise<JourneyStats>
 
 const SHRINE_COLUMNS = `
   s.id, s.name, s.kana, s.prefecture, s.address, s.latitude, s.longitude,
-  s.place_id AS placeId, s.kind, s.created_at AS createdAt, s.updated_at AS updatedAt
+  s.place_id AS placeId, s.kind, s.lineage, s.created_at AS createdAt, s.updated_at AS updatedAt
 `;
 
 // 登録済みの神社を名前・読みで検索する。最近参拝した順に並べる
@@ -129,8 +129,7 @@ export async function searchShrines(db: SQLiteDatabase, query: string): Promise<
      LEFT JOIN visits v ON v.shrine_id = s.id
      WHERE ? = '' OR s.name LIKE ? ESCAPE '\\' OR s.kana LIKE ? ESCAPE '\\'
      GROUP BY s.id
-     ORDER BY lastVisitedOn IS NULL, lastVisitedOn DESC, s.created_at DESC
-     LIMIT 50`,
+     ORDER BY lastVisitedOn IS NULL, lastVisitedOn DESC, s.created_at DESC`,
     q,
     like,
     like,
@@ -150,26 +149,37 @@ export async function listLinkedShrines(db: SQLiteDatabase): Promise<ShrineWithS
   );
 }
 
-// 実際に参拝した場所だけを、図鑑用に最新記録付きで返す
+const CATALOG_SELECT = `
+  SELECT ${SHRINE_COLUMNS},
+    COUNT(DISTINCT v.id) AS visitCount,
+    MAX(v.visited_on) AS lastVisitedOn,
+    COALESCE(
+      (SELECT g.image_file
+         FROM visits recent_v
+         JOIN goshuin g ON g.visit_id = recent_v.id
+        WHERE recent_v.shrine_id = s.id
+        ORDER BY recent_v.visited_on DESC, g.created_at DESC LIMIT 1),
+      (SELECT p.image_file
+         FROM visits recent_v
+         JOIN visit_photos p ON p.visit_id = recent_v.id
+        WHERE recent_v.shrine_id = s.id
+        ORDER BY recent_v.visited_on DESC, p.position DESC LIMIT 1)
+    ) AS latestImageFile,
+    (SELECT recent_v.memo
+       FROM visits recent_v
+      WHERE recent_v.shrine_id = s.id AND recent_v.memo IS NOT NULL AND recent_v.memo != ''
+      ORDER BY recent_v.visited_on DESC, recent_v.created_at DESC LIMIT 1) AS latestMemo
+  FROM shrines s
+  JOIN visits v ON v.shrine_id = s.id
+`;
+
+// 実際に参拝した場所だけを、図鑑用に最新記録付きで返す。画像は御朱印、なければ参拝の写真
 export async function listVisitedShrines(db: SQLiteDatabase): Promise<ShrineCatalogEntry[]> {
-  return db.getAllAsync<ShrineCatalogEntry>(
-    `SELECT ${SHRINE_COLUMNS},
-       COUNT(DISTINCT v.id) AS visitCount,
-       MAX(v.visited_on) AS lastVisitedOn,
-       (SELECT g.image_file
-          FROM visits recent_v
-          JOIN goshuin g ON g.visit_id = recent_v.id
-         WHERE recent_v.shrine_id = s.id
-         ORDER BY recent_v.visited_on DESC, g.created_at DESC LIMIT 1) AS latestImageFile,
-       (SELECT recent_v.memo
-          FROM visits recent_v
-         WHERE recent_v.shrine_id = s.id AND recent_v.memo IS NOT NULL AND recent_v.memo != ''
-         ORDER BY recent_v.visited_on DESC, recent_v.created_at DESC LIMIT 1) AS latestMemo
-     FROM shrines s
-     JOIN visits v ON v.shrine_id = s.id
-     GROUP BY s.id
-     ORDER BY lastVisitedOn DESC, s.name ASC`,
-  );
+  return db.getAllAsync<ShrineCatalogEntry>(`${CATALOG_SELECT} GROUP BY s.id ORDER BY lastVisitedOn DESC, s.name ASC`);
+}
+
+export async function getShrineCatalogEntry(db: SQLiteDatabase, shrineId: string): Promise<ShrineCatalogEntry | null> {
+  return db.getFirstAsync<ShrineCatalogEntry>(`${CATALOG_SELECT} WHERE s.id = ? GROUP BY s.id`, shrineId);
 }
 
 export async function createShrine(
@@ -195,6 +205,7 @@ export async function createShrine(
     longitude: input.longitude ?? null,
     placeId: input.placeId ?? null,
     kind: input.kind ?? 'shrine',
+    lineage: null,
     createdAt: now,
     updatedAt: now,
   };
@@ -389,10 +400,8 @@ export async function listAllEntries(db: SQLiteDatabase): Promise<GoshuinEntry[]
   );
 }
 
-// 御朱印を授からなかった日も含め、すべての参拝を新しい順に返す
-export async function listVisitEntries(db: SQLiteDatabase): Promise<VisitEntry[]> {
-  return db.getAllAsync<VisitEntry>(
-    `SELECT v.id, v.visited_on AS visitedOn, v.weather, v.companions, v.omikuji, v.memo,
+const VISIT_ENTRY_SELECT = `
+  SELECT v.id, v.visited_on AS visitedOn, v.weather, v.companions, v.omikuji, v.memo,
        s.id AS shrineId, s.name AS shrineName, s.kana AS shrineKana, s.kind AS shrineKind,
        s.prefecture, s.address,
        COUNT(g.id) AS goshuinCount,
@@ -407,11 +416,23 @@ export async function listVisitEntries(db: SQLiteDatabase): Promise<VisitEntry[]
          (SELECT latest.image_file FROM goshuin latest WHERE latest.visit_id = v.id
           ORDER BY latest.created_at DESC LIMIT 1)
        ) AS latestImageFile
-     FROM visits v
-     JOIN shrines s ON s.id = v.shrine_id
-     LEFT JOIN goshuin g ON g.visit_id = v.id
-     GROUP BY v.id
-     ORDER BY v.visited_on DESC, v.created_at DESC`,
+  FROM visits v
+  JOIN shrines s ON s.id = v.shrine_id
+  LEFT JOIN goshuin g ON g.visit_id = v.id
+`;
+
+// 御朱印を授からなかった日も含め、すべての参拝を新しい順に返す
+export async function listVisitEntries(db: SQLiteDatabase): Promise<VisitEntry[]> {
+  return db.getAllAsync<VisitEntry>(
+    `${VISIT_ENTRY_SELECT} GROUP BY v.id ORDER BY v.visited_on DESC, v.created_at DESC`,
+  );
+}
+
+// 1つの神社・お寺での参拝を新しい順に返す
+export async function listShrineVisits(db: SQLiteDatabase, shrineId: string): Promise<VisitEntry[]> {
+  return db.getAllAsync<VisitEntry>(
+    `${VISIT_ENTRY_SELECT} WHERE v.shrine_id = ? GROUP BY v.id ORDER BY v.visited_on DESC, v.created_at DESC`,
+    shrineId,
   );
 }
 
@@ -489,26 +510,111 @@ export async function setShrineLocation(
   );
 }
 
-export type MappedPlace = ShrineWithStats & {
-  latitude: number;
-  longitude: number;
-  // 地図から開く、いちばん新しい御朱印
-  latestGoshuinId: string | null;
+export async function getVisit(db: SQLiteDatabase, visitId: string): Promise<VisitDetail | null> {
+  const visit = await db.getFirstAsync<Omit<VisitDetail, 'goshuin' | 'photos'>>(
+    `SELECT v.id, v.visited_on AS visitedOn, v.weather, v.companions, v.omikuji, v.memo,
+       s.id AS shrineId, s.name AS shrineName, s.kana AS shrineKana, s.kind AS shrineKind,
+       s.prefecture, s.address, s.latitude, s.longitude, s.place_id AS placeId
+     FROM visits v
+     JOIN shrines s ON s.id = v.shrine_id
+     WHERE v.id = ?`,
+    visitId,
+  );
+  if (!visit) return null;
+  const [goshuin, photos] = await Promise.all([
+    db.getAllAsync<VisitDetail['goshuin'][number]>(
+      'SELECT id, image_file AS imageFile, kind, fee FROM goshuin WHERE visit_id = ? ORDER BY created_at',
+      visitId,
+    ),
+    db.getAllAsync<VisitDetail['photos'][number]>(
+      'SELECT id, image_file AS imageFile FROM visit_photos WHERE visit_id = ? ORDER BY position, created_at',
+      visitId,
+    ),
+  ]);
+  return { ...visit, goshuin, photos };
+}
+
+export type VisitUpdate = {
+  visitedOn: string;
+  weather: string | null;
+  companions: string | null;
+  omikuji: string | null;
+  memo: string | null;
 };
 
-// 位置が登録されている神社・お寺を、参拝回数と最新の御朱印つきで返す
-export async function listMappedPlaces(db: SQLiteDatabase): Promise<MappedPlace[]> {
-  return db.getAllAsync<MappedPlace>(
+export async function updateVisit(db: SQLiteDatabase, visitId: string, input: VisitUpdate): Promise<void> {
+  await db.runAsync(
+    `UPDATE visits SET visited_on = ?, weather = ?, companions = ?, omikuji = ?, memo = ?, updated_at = ?
+     WHERE id = ?`,
+    input.visitedOn,
+    input.weather,
+    input.companions,
+    input.omikuji,
+    input.memo,
+    new Date().toISOString(),
+    visitId,
+  );
+}
+
+// 消える参拝の御朱印・写真のファイル名。DBから消したあと、呼び出し側でファイルも消す
+async function imageFilesOf(db: SQLiteDatabase, where: string, id: string): Promise<string[]> {
+  const rows = await db.getAllAsync<{ imageFile: string }>(
+    `SELECT g.image_file AS imageFile FROM goshuin g JOIN visits v ON v.id = g.visit_id WHERE ${where}
+     UNION ALL
+     SELECT p.image_file AS imageFile FROM visit_photos p JOIN visits v ON v.id = p.visit_id WHERE ${where}`,
+    id,
+    id,
+  );
+  return rows.map((r) => r.imageFile);
+}
+
+// 参拝を、その参拝の御朱印・写真ごと削除する。消えた画像のファイル名を返す
+export async function deleteVisit(db: SQLiteDatabase, visitId: string): Promise<string[]> {
+  const files = await imageFilesOf(db, 'v.id = ?', visitId);
+  await db.runAsync('DELETE FROM visits WHERE id = ?', visitId);
+  return files;
+}
+
+export async function getShrine(db: SQLiteDatabase, shrineId: string): Promise<ShrineWithStats | null> {
+  return db.getFirstAsync<ShrineWithStats>(
     `SELECT ${SHRINE_COLUMNS},
-       COUNT(DISTINCT v.id) AS visitCount,
-       MAX(v.visited_on) AS lastVisitedOn,
-       (SELECT g.id FROM goshuin g JOIN visits v2 ON v2.id = g.visit_id
-        WHERE v2.shrine_id = s.id
-        ORDER BY v2.visited_on DESC, g.created_at DESC LIMIT 1) AS latestGoshuinId
+       COUNT(v.id) AS visitCount,
+       MAX(v.visited_on) AS lastVisitedOn
      FROM shrines s
      LEFT JOIN visits v ON v.shrine_id = s.id
-     WHERE s.latitude IS NOT NULL AND s.longitude IS NOT NULL
-     GROUP BY s.id
-     ORDER BY lastVisitedOn IS NULL, lastVisitedOn DESC`,
+     WHERE s.id = ?
+     GROUP BY s.id`,
+    shrineId,
   );
+}
+
+export type ShrineUpdate = {
+  name: string;
+  kana: string;
+  prefecture: string;
+  kind: PlaceKind;
+  lineage: string | null;
+};
+
+export async function updateShrine(db: SQLiteDatabase, shrineId: string, input: ShrineUpdate): Promise<void> {
+  await db.runAsync(
+    'UPDATE shrines SET name = ?, kana = ?, prefecture = ?, kind = ?, lineage = ?, updated_at = ? WHERE id = ?',
+    input.name.trim(),
+    input.kana.trim() || null,
+    input.prefecture.trim() || null,
+    input.kind,
+    input.lineage,
+    new Date().toISOString(),
+    shrineId,
+  );
+}
+
+// 神社・お寺を、そこでの参拝・御朱印・写真ごと削除する。消えた画像のファイル名を返す
+export async function deleteShrine(db: SQLiteDatabase, shrineId: string): Promise<string[]> {
+  const files = await imageFilesOf(db, 'v.shrine_id = ?', shrineId);
+  await db.withTransactionAsync(async () => {
+    await db.runAsync('DELETE FROM visits WHERE shrine_id = ?', shrineId);
+    await db.runAsync('DELETE FROM shrines WHERE id = ?', shrineId);
+  });
+  return files;
 }

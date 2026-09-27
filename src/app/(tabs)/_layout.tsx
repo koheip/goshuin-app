@@ -1,5 +1,5 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { router, Tabs } from 'expo-router';
+import { Tabs } from 'expo-router';
 import { StyleSheet, View, type ColorValue } from 'react-native';
 
 import { colors, fonts, glow } from '@/theme';
@@ -64,7 +64,7 @@ export default function TabLayout() {
         name="map"
         options={{
           title: 'めぐる',
-          tabBarIcon: ({ color, size }) => <Ionicons name="map-outline" size={size} color={color} />,
+          tabBarIcon: ({ color, size }) => <Ionicons name="search" size={size} color={color} />,
         }}
       />
       <Tabs.Screen
@@ -85,19 +85,6 @@ export default function TabLayout() {
         name="avatar"
         options={{
           href: null,
-        }}
-      />
-      <Tabs.Screen
-        name="record"
-        options={{
-          href: null,
-        }}
-        // 記録はタブではなく、全画面のモーダルで3ステップを進める
-        listeners={{
-          tabPress: (e) => {
-            e.preventDefault();
-            router.push('/record');
-          },
         }}
       />
     </Tabs>

@@ -35,7 +35,6 @@ export default function RecordLayout() {
             ),
           }}
         />
-        <Stack.Screen name="photo" />
         <Stack.Screen name="memo" />
         <Stack.Screen name="success" options={{ headerShown: false, gestureEnabled: false }} />
       </Stack>

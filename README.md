@@ -12,7 +12,7 @@
   2. 御朱印を撮影、または写真ライブラリから選ぶ（初穂料・納経料も入力可能）
   3. 参拝日・天気・同行者・おみくじ・メモを入力（任意）
 - **御朱印の詳細**：参拝日、種類（通常・限定・書き置き）、初穂料などの確認・編集・削除と、Google マップで開く
-- **地図**：位置を記録した神社・お寺を地図に並べます（アプリ内の地図は開発ビルドのみ。Expo Go では一覧から Google マップで開きます）
+- **神社を探す**：今いる場所の近くや名前から神社・お寺を探し、そのまま参拝を記録できます。Google マップで開くこともできます
 - **バックアップ**：記録と写真を1つのファイルに書き出し、機種変更後などに戻せます
 - **端末内保存**：記録は SQLite、写真はアプリのドキュメントフォルダに保存します。外部サーバーには送信しません（詳しくは [プライバシーポリシー](PRIVACY.md)）
 
@@ -21,7 +21,7 @@
 - [Expo](https://expo.dev/) SDK 57 / React Native / TypeScript
 - [Expo Router](https://docs.expo.dev/router/introduction/)（ファイルベースのルーティング）
 - expo-sqlite、expo-file-system、expo-image-picker、expo-image-manipulator
-- expo-location、expo-maps、expo-sharing、expo-document-picker
+- expo-location、expo-sharing、expo-document-picker
 - expo-linear-gradient、M PLUS Rounded 1c（`@expo-google-fonts/m-plus-rounded-1c`）
 
 ## 動かし方
@@ -46,9 +46,9 @@ npm run start:go
 - スマホと PC が同じ Wi-Fi につながらない環境では `npx expo start --go --tunnel` を使ってください
 - `expo-dev-client` を入れているため、`npx expo start` だけだと開発ビルド向けに起動します。Expo Go で開くときは `--go` を付けてください
 
-### 開発ビルド（アプリ内の地図を使うとき）
+### 開発ビルド
 
-アプリ内の地図（expo-maps）は Expo Go に入っていないため、開発ビルドが必要です。
+Expo Go に入っていないネイティブのライブラリを使うときは、開発ビルドが必要です。
 
 ```bash
 npx eas-cli@latest login
@@ -57,8 +57,6 @@ npx expo start                                                   # 開発ビル�
 ```
 
 APIキーは [.env.example](.env.example) を `.env` にコピーして入れます。「Google で探す」は `EXPO_PUBLIC_GOOGLE_PLACES_API_KEY` を入れたときだけ表示されます。
-
-Android の地図には Google Maps SDK for Android の APIキーが必要です。環境変数 `GOOGLE_MAPS_ANDROID_API_KEY` に入れると [app.config.ts](app.config.ts) が設定に加えます（EAS では Environment variables に登録）。
 
 ### 開発用コマンド
 
@@ -74,14 +72,14 @@ npx expo-doctor    # 依存関係と設定の診断
 ```
 src/
 ├── app/                 # 画面（Expo Router）
-│   ├── (tabs)/          # タブ：御朱印帳・地図・記録
+│   ├── (tabs)/          # タブ：ホーム・神社を探す・記録・図鑑
 │   ├── books/           # 御朱印帳の一覧・名前と並び順
 │   ├── goshuin/         # 御朱印の詳細・編集
 │   ├── backup.tsx       # バックアップ
 │   └── record/          # 参拝記録の3ステップ（モーダル）
 ├── components/          # 共通 UI（ボタン、見開きページ、神社モチーフなど）
 ├── db/                  # SQLite のマイグレーション・データ操作・型
-├── lib/                 # 日付・画像・地図・位置情報・バックアップの処理
+├── lib/                 # 日付・画像・Google マップ・位置情報・バックアップの処理
 ├── record/              # 記録中の下書きの状態管理
 ├── testing/             # テスト用の補助（Node の SQLite で DB を再現）
 └── theme.ts             # 配色・グラデーション・書体

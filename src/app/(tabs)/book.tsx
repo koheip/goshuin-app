@@ -18,16 +18,22 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { GoshuinPage } from '@/components/GoshuinPage';
 import { KamiLoadingScreen } from '@/components/KamiLoadingScreen';
-import { Sakura, Shimenawa, Torii } from '@/components/shrine';
+import { ShrineList } from '@/components/ShrineList';
+import { PlaceMark, Sakura, Shimenawa, Torii } from '@/components/shrine';
 import { Button, DreamyBackground, ScreenTitle, Sparkle } from '@/components/ui';
-import { listAllEntries, listVisitEntries } from '@/db/repo';
+import { listAllEntries, listVisitEntries, listVisitedShrines, type ShrineCatalogEntry } from '@/db/repo';
 import { GOSHUIN_KIND_LABEL, type GoshuinEntry, type VisitEntry } from '@/db/types';
 import { formatDot } from '@/lib/dates';
 import { imageUri } from '@/lib/images';
 import { colors, fonts, glow, gradients, radius } from '@/theme';
 
 type Mode = 'spread' | 'grid';
-type Collection = 'visits' | 'goshuin';
+type Collection = 'visits' | 'shrines' | 'goshuin';
+const COLLECTIONS = [
+  { value: 'visits', label: '参拝', icon: 'footsteps-outline' },
+  { value: 'shrines', label: '神社ごと', icon: 'location-outline' },
+  { value: 'goshuin', label: '御朱印', icon: 'image-outline' },
+] as const;
 type Spread = { key: string; left?: GoshuinEntry; right?: GoshuinEntry };
 
 const SIDE_PADDING = 16;
@@ -39,6 +45,7 @@ export default function BookScreen() {
   const { width: windowWidth } = useWindowDimensions();
   const [entries, setEntries] = useState<GoshuinEntry[] | null>(null);
   const [visits, setVisits] = useState<VisitEntry[] | null>(null);
+  const [shrines, setShrines] = useState<ShrineCatalogEntry[]>([]);
   const [collection, setCollection] = useState<Collection>('visits');
   const [mode, setMode] = useState<Mode>('grid');
   const [spreadIndex, setSpreadIndex] = useState(0);
@@ -50,10 +57,11 @@ export default function BookScreen() {
     useCallback(() => {
       let active = true;
       (async () => {
-        const [rows, visitRows] = await Promise.all([listAllEntries(db), listVisitEntries(db)]);
+        const [rows, visitRows, shrineRows] = await Promise.all([listAllEntries(db), listVisitEntries(db), listVisitedShrines(db)]);
         if (!active) return;
         setEntries(rows);
         setVisits(visitRows);
+        setShrines(shrineRows);
         // 最初の表示と、新しい御朱印が増えたときは最新の見開きを開く
         const lastSpread = Math.max(Math.ceil(rows.length / 2) - 1, 0);
         if (prevCount.current === null || rows.length > prevCount.current) {
@@ -131,7 +139,7 @@ export default function BookScreen() {
       </View>
 
       <View style={styles.collectionTabs} accessibilityRole="tablist">
-        {([['visits', '参拝'], ['goshuin', '御朱印']] as const).map(([value, label]) => <Pressable key={value} accessibilityRole="tab" accessibilityState={{ selected: collection === value }} onPress={() => setCollection(value)} style={[styles.collectionTab, collection === value && styles.collectionTabActive]}><Ionicons name={value === 'visits' ? 'footsteps-outline' : 'image-outline'} size={17} color={collection === value ? '#FFFFFF' : colors.violet} /><Text style={[styles.collectionTabText, collection === value && styles.collectionTabTextActive]}>{label}</Text></Pressable>)}
+        {COLLECTIONS.map(({ value, label, icon }) => <Pressable key={value} accessibilityRole="tab" accessibilityState={{ selected: collection === value }} onPress={() => setCollection(value)} style={[styles.collectionTab, collection === value && styles.collectionTabActive]}><Ionicons name={icon} size={17} color={collection === value ? '#FFFFFF' : colors.violet} /><Text style={[styles.collectionTabText, collection === value && styles.collectionTabTextActive]}>{label}</Text></Pressable>)}
       </View>
 
       {entries === null || visits === null ? <KamiLoadingScreen variant="loading" message="参拝の記録をひらいています…" /> : collection === 'visits' ? (
@@ -143,6 +151,8 @@ export default function BookScreen() {
           ListEmptyComponent={<View style={styles.visitEmpty}><View style={styles.emptyToriiCircle}><Torii size={48} /></View><Text style={styles.emptyTitle}>まだ参拝の記録はありません</Text><Text style={styles.emptyBody}>日々のお参りを、御朱印がない日も気軽に残せます。</Text><Button label="最初の参拝を記録する" onPress={() => router.push('/record')} icon={<Ionicons name="add" size={20} color="#FFFFFF" />} style={styles.emptyButton} /></View>}
           renderItem={({ item }) => <VisitCard visit={item} />}
         />
+      ) : collection === 'shrines' ? (
+        <ShrineList shrines={shrines} />
       ) : entries.length === 0 ? (
         <View style={styles.empty}>
           <LinearGradient colors={gradients.cover} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[styles.cover, { width: spreadWidth }]}>
@@ -283,15 +293,15 @@ export default function BookScreen() {
 }
 
 function VisitCard({ visit }: { visit: VisitEntry }) {
-  const open = () => visit.latestGoshuinId && router.push(`/goshuin/${visit.latestGoshuinId}`);
-  return <Pressable accessibilityRole={visit.latestGoshuinId ? 'button' : undefined} onPress={open} style={({ pressed }) => [styles.visitCard, pressed && visit.latestGoshuinId && { opacity: .78 }]}>
-    {visit.latestImageFile ? <Image source={{ uri: imageUri(visit.latestImageFile) }} style={styles.visitImage} resizeMode="cover" /> : <View style={styles.visitIcon}><Torii size={39} /></View>}
+  const open = () => router.push({ pathname: '/visit/[id]', params: { id: visit.id } });
+  return <Pressable accessibilityRole="button" onPress={open} style={({ pressed }) => [styles.visitCard, pressed && { opacity: .78 }]}>
+    {visit.latestImageFile ? <Image source={{ uri: imageUri(visit.latestImageFile) }} style={styles.visitImage} resizeMode="cover" /> : <View style={styles.visitIcon}><PlaceMark kind={visit.shrineKind} size={39} /></View>}
     <View style={styles.visitCopy}>
       <View style={styles.visitTitleRow}><Text style={styles.visitName} numberOfLines={1}>{visit.shrineName}</Text>{visit.photoCount > 0 && <View style={styles.goshuinBadge}><Ionicons name="camera-outline" size={11} color={colors.accent} /><Text style={styles.goshuinBadgeText}>写真 {visit.photoCount}</Text></View>}{visit.goshuinCount > 0 && <View style={styles.goshuinBadge}><Ionicons name="image-outline" size={11} color={colors.accent} /><Text style={styles.goshuinBadgeText}>御朱印 {visit.goshuinCount}</Text></View>}</View>
       <Text style={styles.visitDate}>{formatDot(visit.visitedOn)}{visit.weather ? ` · ${visit.weather}` : ''}</Text>
       <Text style={styles.visitMemo} numberOfLines={2}>{visit.memo || (visit.goshuinCount > 0 ? '御朱印と一緒に記録しました' : '日々の参拝を記録しました')}</Text>
     </View>
-    {visit.latestGoshuinId && <Ionicons name="chevron-forward" size={18} color={colors.violet} />}
+    <Ionicons name="chevron-forward" size={18} color={colors.violet} />
   </Pressable>;
 }
 

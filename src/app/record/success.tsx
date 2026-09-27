@@ -86,7 +86,7 @@ export default function RecordSuccessScreen() {
 
         <View style={styles.rewards}>
           <View style={styles.reward}><View style={styles.rewardIcon}><Torii size={29} /></View><View><Text style={styles.rewardValue}>{params.visits ?? '1'} 回</Text><Text style={styles.rewardLabel}>これまでの参拝</Text></View></View>
-          {params.firstVisit === 'true' && <View style={styles.reward}><View style={styles.rewardIcon}><Ionicons name="library-outline" size={24} color={colors.accent} /></View><View><Text style={styles.rewardValue}>NEW</Text><Text style={styles.rewardLabel}>神社図鑑に登録</Text></View></View>}
+          {params.firstVisit === 'true' && <View style={styles.reward}><View style={styles.rewardIcon}><Ionicons name="library-outline" size={24} color={colors.accent} /></View><View><Text style={styles.rewardValue}>NEW</Text><Text style={styles.rewardLabel}>はじめての場所</Text></View></View>}
         </View>
 
         {specialUnlock && <View style={styles.unlock}><Sakura size={24} /><View style={styles.unlockCopy}><Text style={styles.unlockKicker}>新しいご縁がひらきました</Text><Text style={styles.unlockName}>{specialUnlock}と出会えます</Text></View><Ionicons name="sparkles" size={20} color={colors.violet} /></View>}

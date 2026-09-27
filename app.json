@@ -53,10 +53,9 @@
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "参拝した神社・お寺の場所を記録し、地図に表示するために現在地を使用します。"
+          "locationWhenInUsePermission": "参拝した神社・お寺の場所を記録し、近くの神社・お寺を探すために現在地を使用します。"
         }
-      ],
-      "expo-maps"
+      ]
     ],
     "extra": {
       "router": {},

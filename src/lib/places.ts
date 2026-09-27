@@ -75,11 +75,18 @@ async function throwPlacesError(res: Response): Promise<never> {
   throw new Error(`検索に失敗しました（${res.status}）${detail ? `: ${detail}` : ''}`);
 }
 
-export async function searchPlaces(query: string, signal?: AbortSignal): Promise<PlaceCandidate[]> {
+// near を渡すと、その周り（20km）の場所を優先し、近い順に返す
+export async function searchPlaces(query: string, signal?: AbortSignal, near?: Coords): Promise<PlaceCandidate[]> {
   const res = await fetch(TEXT_ENDPOINT, {
     method: 'POST',
     headers: requestHeaders(FIELD_MASK),
-    body: JSON.stringify({ textQuery: query, languageCode: 'ja', regionCode: 'JP', pageSize: 10 }),
+    body: JSON.stringify({
+      textQuery: query,
+      languageCode: 'ja',
+      regionCode: 'JP',
+      pageSize: 10,
+      ...(near && { locationBias: { circle: { center: near, radius: 20000 } }, rankPreference: 'DISTANCE' }),
+    }),
     signal,
   });
   if (!res.ok) return throwPlacesError(res);

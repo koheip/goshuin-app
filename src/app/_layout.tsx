@@ -54,6 +54,11 @@ export default function RootLayout() {
         <Stack.Screen name="record" options={{ headerShown: false, presentation: 'modal' }} />
         <Stack.Screen name="goshuin/[id]" options={{ title: '御朱印' }} />
         <Stack.Screen name="goshuin/edit/[id]" options={{ title: '記録を編集' }} />
+        <Stack.Screen name="visit/[id]" options={{ title: '参拝の記録' }} />
+        <Stack.Screen name="visit/edit/[id]" options={{ title: '記録を編集' }} />
+        <Stack.Screen name="shrine/[id]" options={{ headerShown: false }} />
+        <Stack.Screen name="shrine/edit/[id]" options={{ title: '神社・お寺を編集' }} />
+        <Stack.Screen name="lineage/[id]" options={{ headerShown: false }} />
         <Stack.Screen name="backup" options={{ title: 'バックアップ' }} />
         <Stack.Screen name="nearby" options={{ title: '近くの神社・お寺' }} />
         <Stack.Screen name="reminder" options={{ headerShown: false }} />

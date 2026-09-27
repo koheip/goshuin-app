@@ -8,7 +8,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BLESSINGS, type BlessingId } from '@/avatar/catalog';
 import { PixelAvatar } from '@/components/AvatarPreview';
-import { Sakura, Torii } from '@/components/shrine';
+import { PlaceMark, Sakura, Torii } from '@/components/shrine';
 import { GlassCard, PixelWordmark, Sparkle } from '@/components/ui';
 import { getAvatarPreferences, listVisitEntries } from '@/db/repo';
 import type { VisitEntry } from '@/db/types';
@@ -90,8 +90,8 @@ export default function HomeScreen() {
               {latest === undefined ? (
                 <View style={styles.loadingLine} />
               ) : latest ? (
-                <Pressable accessibilityRole={latest.latestGoshuinId ? 'button' : undefined} accessibilityLabel={`${latest.shrineName}の参拝記録`} onPress={() => latest.latestGoshuinId && router.push(`/goshuin/${latest.latestGoshuinId}`)} style={({ pressed }) => [styles.latestRow, pressed && styles.pressed]}>
-                  {latest.latestImageFile ? <Image source={{ uri: imageUri(latest.latestImageFile) }} style={styles.thumb} resizeMode="cover" /> : <View style={[styles.thumb, styles.visitThumb]}><Torii size={42} /></View>}
+                <Pressable accessibilityRole="button" accessibilityLabel={`${latest.shrineName}の参拝記録`} onPress={() => router.push({ pathname: '/visit/[id]', params: { id: latest.id } })} style={({ pressed }) => [styles.latestRow, pressed && styles.pressed]}>
+                  {latest.latestImageFile ? <Image source={{ uri: imageUri(latest.latestImageFile) }} style={styles.thumb} resizeMode="cover" /> : <View style={[styles.thumb, styles.visitThumb]}><PlaceMark kind={latest.shrineKind} size={42} /></View>}
                   <View style={styles.latestText}>
                     <Text style={styles.shrineName} numberOfLines={1}>{latest.shrineName}</Text>
                     <View style={styles.metaRow}>
@@ -113,13 +113,13 @@ export default function HomeScreen() {
               )}
 
               <View style={styles.actions}>
-                <Pressable accessibilityRole="button" accessibilityLabel="参拝の記録を見る" onPress={() => router.push('/book')} style={({ pressed }) => [styles.primaryAction, pressed && styles.pressed]}>
+                <Pressable accessibilityRole="button" accessibilityLabel="参拝を記録する" onPress={() => router.push('/record')} style={({ pressed }) => [styles.primaryAction, pressed && styles.pressed]}>
                   <LinearGradient colors={gradients.primary} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={StyleSheet.absoluteFill} />
-                  <Ionicons name="book-outline" size={18} color="#FFFFFF" />
-                  <Text style={styles.primaryActionText}>参拝の記録を見る</Text>
+                  <Ionicons name="add" size={20} color="#FFFFFF" />
+                  <Text style={styles.primaryActionText}>参拝を記録する</Text>
                 </Pressable>
-                <Pressable accessibilityRole="button" accessibilityLabel="地図を開く" onPress={() => router.push('/map')} style={({ pressed }) => [styles.mapAction, pressed && styles.pressed]}>
-                  <Ionicons name="map-outline" size={19} color={colors.inkSoft} />
+                <Pressable accessibilityRole="button" accessibilityLabel="神社を探す" onPress={() => router.push('/map')} style={({ pressed }) => [styles.mapAction, pressed && styles.pressed]}>
+                  <Ionicons name="search" size={19} color={colors.inkSoft} />
                 </Pressable>
               </View>
             </GlassCard>

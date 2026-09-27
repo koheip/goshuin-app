@@ -14,7 +14,7 @@ const FORMAT_VERSION = 3;
 const TABLES = {
   shrines: [
     'id', 'name', 'kana', 'prefecture', 'address', 'latitude', 'longitude',
-    'place_id', 'kind', 'created_at', 'updated_at',
+    'place_id', 'kind', 'lineage', 'created_at', 'updated_at',
   ],
   books: ['id', 'name', 'started_on', 'ended_on', 'created_at', 'updated_at'],
   visits: [

@@ -1,8 +1,9 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
+  ActivityIndicator,
   Alert,
   FlatList,
   KeyboardAvoidingView,
@@ -15,17 +16,17 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { LocationButton } from '@/components/LocationButton';
-import { PlaceSearch } from '@/components/PlaceSearch';
 import { PlaceMark } from '@/components/shrine';
-import { Button, Chip, ChipGroup, Field, FieldLabel, Stepper } from '@/components/ui';
+import { Button, Chip, ChipGroup, Stepper } from '@/components/ui';
 import { createShrine, listLinkedShrines, searchShrines, type ShrineWithStats } from '@/db/repo';
 import { PLACE_KIND_LABEL, type PlaceKind } from '@/db/types';
 import { formatDot } from '@/lib/dates';
-import type { Coords } from '@/lib/location';
-import { placesSearchEnabled, type PlaceCandidate } from '@/lib/places';
+import { guessKind, placesSearchEnabled, searchPlaces, type PlaceCandidate } from '@/lib/places';
 import { useDraft } from '@/record/draft';
 import { colors, radius, fonts } from '@/theme';
+
+// まだ登録していない神社・お寺。「次へ」を押したときに登録する
+type NewPlace = { name: string; kind: PlaceKind; placeId: string | null };
 
 export default function SelectShrineScreen() {
   const db = useSQLiteContext();
@@ -35,16 +36,14 @@ export default function SelectShrineScreen() {
 
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<ShrineWithStats[] | null>(null);
-  const [adding, setAdding] = useState(false);
-  const [newName, setNewName] = useState('');
-  const [newKana, setNewKana] = useState('');
-  const [newPrefecture, setNewPrefecture] = useState('');
-  const [newKind, setNewKind] = useState<PlaceKind>('shrine');
-  const [newCoords, setNewCoords] = useState<Coords | null>(null);
-  const [newPlaceId, setNewPlaceId] = useState<string | null>(null);
+  const [googleResults, setGoogleResults] = useState<PlaceCandidate[] | null>(null);
+  const [googleLoading, setGoogleLoading] = useState(false);
+  const [googleError, setGoogleError] = useState<string | null>(null);
+  const [newPlace, setNewPlace] = useState<NewPlace | null>(null);
   const [saving, setSaving] = useState(false);
+  const abort = useRef<AbortController | null>(null);
 
-  // 近くの神社から来たときは、つなげた神社があれば選び、なければ追加フォームに入れておく
+  // 近くの神社から来たときは、つなげた神社があれば選び、なければ新しい場所として選んでおく
   useEffect(() => {
     if (!params.placeId || !params.name) return;
     const { placeId, name } = params;
@@ -53,14 +52,8 @@ export default function SelectShrineScreen() {
     listLinkedShrines(db).then((rows) => {
       if (!active) return;
       const shrine = rows.find((r) => r.placeId === placeId);
-      if (shrine) {
-        update({ shrine: { id: shrine.id, name: shrine.name, kind: shrine.kind } });
-        return;
-      }
-      setAdding(true);
-      setNewName(name);
-      setNewKind(kind);
-      setNewPlaceId(placeId);
+      if (shrine) update({ shrine: { id: shrine.id, name: shrine.name, kind: shrine.kind } });
+      else setNewPlace({ name, kind, placeId });
     });
     return () => {
       active = false;
@@ -79,36 +72,65 @@ export default function SelectShrineScreen() {
     };
   }, [db, query]);
 
-  const noShrinesYet = results !== null && results.length === 0 && query.trim() === '';
-  const showAddForm = adding || noShrinesYet;
+  function changeQuery(text: string) {
+    setQuery(text);
+    abort.current?.abort();
+    setGoogleResults(null);
+    setGoogleLoading(false);
+    setGoogleError(null);
+  }
 
-  async function addShrine() {
-    if (!newName.trim()) return;
-    setSaving(true);
+  async function searchGoogle() {
+    const q = query.trim();
+    if (!q || !placesSearchEnabled) return;
+    abort.current?.abort();
+    const controller = new AbortController();
+    abort.current = controller;
+    setGoogleLoading(true);
+    setGoogleError(null);
     try {
-      const shrine = await createShrine(db, { name: newName, kana: newKana, prefecture: newPrefecture, kind: newKind, placeId: newPlaceId, ...newCoords });
-      update({ shrine: { id: shrine.id, name: shrine.name, kind: shrine.kind } });
-      setAdding(false);
-      setNewName('');
-      setNewKana('');
-      setNewPrefecture('');
-      setNewKind('shrine');
-      setNewCoords(null);
-      setNewPlaceId(null);
-      setQuery('');
-      setResults(await searchShrines(db, ''));
+      setGoogleResults(await searchPlaces(q, controller.signal));
     } catch (e) {
-      Alert.alert('追加できませんでした', String(e));
+      if (!controller.signal.aborted) setGoogleError(e instanceof Error ? e.message : String(e));
     } finally {
-      setSaving(false);
+      if (abort.current === controller) setGoogleLoading(false);
     }
   }
 
-  function pickPlace(place: PlaceCandidate) {
-    setNewName(place.name);
-    setNewKind(place.kind);
-    setNewPlaceId(place.placeId);
+  function selectShrine(shrine: ShrineWithStats) {
+    setNewPlace(null);
+    update({ shrine: { id: shrine.id, name: shrine.name, kind: shrine.kind } });
   }
+
+  async function selectNew(place: NewPlace) {
+    // Google の場所をもう登録してあれば、それを選ぶ
+    const existing = place.placeId ? (await listLinkedShrines(db)).find((s) => s.placeId === place.placeId) : undefined;
+    if (existing) return selectShrine(existing);
+    update({ shrine: null });
+    setNewPlace(place);
+  }
+
+  async function next() {
+    if (newPlace) {
+      setSaving(true);
+      try {
+        const shrine = await createShrine(db, newPlace);
+        update({ shrine: { id: shrine.id, name: shrine.name, kind: shrine.kind } });
+        setNewPlace(null);
+        setResults(await searchShrines(db, query));
+      } catch (e) {
+        Alert.alert('追加できませんでした', String(e));
+        return;
+      } finally {
+        setSaving(false);
+      }
+    }
+    update({ recordMode: 'visit' });
+    router.push('/record/memo');
+  }
+
+  const trimmed = query.trim();
+  const noShrinesYet = results !== null && results.length === 0 && trimmed === '';
 
   const header = (
     <View style={styles.headerBlock}>
@@ -117,73 +139,70 @@ export default function SelectShrineScreen() {
         <Ionicons name="search" size={18} color={colors.muted} />
         <TextInput
           value={query}
-          onChangeText={setQuery}
-          placeholder="登録済みの神社・お寺を検索"
+          onChangeText={changeQuery}
+          onSubmitEditing={searchGoogle}
+          placeholder="神社・お寺の名前を入力"
           placeholderTextColor={colors.placeholder}
-          accessibilityLabel="登録済みの神社・お寺を検索"
+          accessibilityLabel="神社・お寺の名前で探す"
           style={styles.searchInput}
           returnKeyType="search"
         />
+        {query.length > 0 && (
+          <Pressable accessibilityRole="button" accessibilityLabel="入力を消す" hitSlop={8} onPress={() => changeQuery('')}>
+            <Ionicons name="close-circle" size={20} color={colors.placeholder} />
+          </Pressable>
+        )}
       </View>
-      {!noShrinesYet && <Text style={styles.sectionLabel}>これまでに記録した神社・お寺</Text>}
+      {newPlace && trimmed === '' && (
+        <NewPlaceRow place={newPlace} onKind={newPlace.placeId ? undefined : (kind) => setNewPlace({ ...newPlace, kind })} />
+      )}
+      {noShrinesYet && !newPlace && <Text style={styles.hint}>参拝した神社・お寺の名前を入力してください</Text>}
+      {results && results.length > 0 && <Text style={styles.sectionLabel}>{trimmed ? '記録した神社・お寺' : 'これまでに記録した神社・お寺'}</Text>}
     </View>
   );
 
-  const footer = (
-    <View style={styles.addBlock}>
-      {showAddForm ? (
-        <View style={styles.addForm}>
-          <Text style={styles.addTitle}>
-            {noShrinesYet ? '最初の神社・お寺を追加しましょう' : '神社・お寺を追加'}
-          </Text>
-          {placesSearchEnabled && <PlaceSearch onPick={pickPlace} />}
-          {newPlaceId && (
-            <View style={styles.linked}>
-              <Ionicons name="link" size={16} color={colors.accent} />
-              <Text style={styles.linkedText}>Google マップの場所とつなげました</Text>
-              <Pressable accessibilityRole="button" hitSlop={8} onPress={() => setNewPlaceId(null)}>
-                <Text style={styles.linkedClear}>外す</Text>
-              </Pressable>
-            </View>
-          )}
-          <View style={styles.kindGroup}>
-            <FieldLabel>種類</FieldLabel>
-            <ChipGroup>
-              {(Object.keys(PLACE_KIND_LABEL) as PlaceKind[]).map((k) => (
-                <Chip key={k} label={PLACE_KIND_LABEL[k]} selected={newKind === k} onPress={() => setNewKind(k)} />
-              ))}
-            </ChipGroup>
-          </View>
-          <Field
-            label="名前（必須）"
-            value={newName}
-            onChangeText={setNewName}
-            placeholder={newKind === 'temple' ? '例：〇〇寺' : '例：〇〇神社'}
-          />
-          <Field label="読み" value={newKana} onChangeText={setNewKana} placeholder={newKind === 'temple' ? '例：まるまるでら' : '例：まるまるじんじゃ'} />
-          <Field label="都道府県" value={newPrefecture} onChangeText={setNewPrefecture} placeholder="例：東京都" />
-          <LocationButton value={newCoords} onChange={setNewCoords} clearable />
-          <View style={styles.addActions}>
-            {!noShrinesYet && (
-              <Button label="やめる" variant="secondary" onPress={() => setAdding(false)} style={{ flex: 1 }} />
-            )}
-            <Button
-              label="追加して選ぶ"
-              onPress={addShrine}
-              disabled={!newName.trim()}
-              loading={saving}
-              style={{ flex: 1 }}
+  const footer = trimmed ? (
+    <View style={styles.footer}>
+      {googleResults === null && placesSearchEnabled && (
+        <Pressable accessibilityRole="button" onPress={searchGoogle} disabled={googleLoading} style={({ pressed }) => [styles.action, pressed && styles.pressed]}>
+          {googleLoading ? <ActivityIndicator color={colors.accent} /> : <Ionicons name="search" size={18} color={colors.accent} />}
+          <Text style={styles.actionLabel}>「{trimmed}」を Google で探す</Text>
+        </Pressable>
+      )}
+      {googleError && <Text style={styles.error}>{googleError}</Text>}
+      {googleResults && googleResults.length > 0 && (
+        <View>
+          <Text style={[styles.sectionLabel, styles.sectionGap]}>Google で見つかった場所</Text>
+          {googleResults.map((place, index) => (
+            <Row
+              key={place.placeId}
+              kind={place.kind}
+              name={place.name}
+              meta={place.address}
+              first={index === 0}
+              last={index === googleResults.length - 1}
+              selected={newPlace?.placeId === place.placeId}
+              onPress={() => selectNew({ name: place.name, kind: place.kind, placeId: place.placeId })}
             />
-          </View>
+          ))}
+          <Text style={styles.attribution}>Google Maps</Text>
         </View>
+      )}
+      {googleResults?.length === 0 && <Text style={styles.hint}>Google では見つかりませんでした</Text>}
+      {newPlace && !newPlace.placeId ? (
+        <NewPlaceRow place={newPlace} onKind={(kind) => setNewPlace({ ...newPlace, kind })} />
       ) : (
-        <Pressable accessibilityRole="button" onPress={() => setAdding(true)} style={styles.addLink}>
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => selectNew({ name: trimmed, kind: guessKind(trimmed), placeId: null })}
+          style={({ pressed }) => [styles.action, pressed && styles.pressed]}
+        >
           <Ionicons name="add" size={18} color={colors.accent} />
-          <Text style={styles.addLinkLabel}>見つからない場合は手入力で追加</Text>
+          <Text style={styles.actionLabel}>「{trimmed}」を新しく追加</Text>
         </Pressable>
       )}
     </View>
-  );
+  ) : null;
 
   return (
     <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
@@ -192,59 +211,34 @@ export default function SelectShrineScreen() {
         keyExtractor={(s) => s.id}
         ListHeaderComponent={header}
         ListFooterComponent={footer}
-        ListEmptyComponent={
-          results !== null && query.trim() !== '' ? (
-            <Text style={styles.empty}>「{query.trim()}」に一致する神社・お寺はありません</Text>
-          ) : null
-        }
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={styles.listContent}
-        renderItem={({ item, index }) => {
-          const selected = draft.shrine?.id === item.id;
-          const last = index === (results?.length ?? 0) - 1;
-          return (
-            <Pressable
-              accessibilityRole="radio"
-              accessibilityState={{ selected }}
-              onPress={() => update({ shrine: { id: item.id, name: item.name, kind: item.kind } })}
-              style={[
-                styles.row,
-                index === 0 && styles.rowFirst,
-                last && styles.rowLast,
-                selected && styles.rowSelected,
-              ]}
-            >
-              <View style={styles.rowIcon}>
-                <PlaceMark kind={item.kind} size={22} />
-              </View>
-              <View style={styles.flex}>
-                <Text style={styles.rowName}>{item.name}</Text>
-                <Text style={styles.rowMeta}>
-                  {[
-                    item.prefecture,
-                    item.visitCount > 0 ? `参拝 ${item.visitCount}回` : null,
-                    item.lastVisitedOn ? `最終 ${formatDot(item.lastVisitedOn)}` : null,
-                  ]
-                    .filter(Boolean)
-                    .join(' · ') || 'まだ参拝の記録はありません'}
-                </Text>
-              </View>
-              {selected ? (
-                <View style={styles.check}>
-                  <Ionicons name="checkmark" size={16} color="#FFFFFF" />
-                </View>
-              ) : (
-                <View style={styles.radio} />
-              )}
-            </Pressable>
-          );
-        }}
+        renderItem={({ item, index }) => (
+          <Row
+            kind={item.kind}
+            name={item.name}
+            meta={
+              [
+                item.prefecture,
+                item.visitCount > 0 ? `参拝 ${item.visitCount}回` : null,
+                item.lastVisitedOn ? `最終 ${formatDot(item.lastVisitedOn)}` : null,
+              ]
+                .filter(Boolean)
+                .join(' · ') || 'まだ参拝の記録はありません'
+            }
+            first={index === 0}
+            last={index === (results?.length ?? 0) - 1}
+            selected={draft.shrine?.id === item.id}
+            onPress={() => selectShrine(item)}
+          />
+        )}
       />
       <View style={[styles.bottomBar, { paddingBottom: Math.max(insets.bottom, 16) }]}>
         <Button
           label="次へ：参拝内容を入力"
-          disabled={!draft.shrine}
-          onPress={() => { update({ recordMode: 'visit' }); router.push('/record/memo'); }}
+          disabled={!draft.shrine && !newPlace}
+          loading={saving}
+          onPress={next}
           icon={<Ionicons name="footsteps-outline" size={20} color="#FFFFFF" />}
         />
       </View>
@@ -252,10 +246,60 @@ export default function SelectShrineScreen() {
   );
 }
 
+function Row({ kind, name, meta, first, last, selected, onPress }: {
+  kind: PlaceKind;
+  name: string;
+  meta: string;
+  first: boolean;
+  last: boolean;
+  selected: boolean;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      accessibilityRole="radio"
+      accessibilityState={{ selected }}
+      onPress={onPress}
+      style={[styles.row, first && styles.rowFirst, last && styles.rowLast, selected && styles.rowSelected]}
+    >
+      <View style={styles.rowIcon}>
+        <PlaceMark kind={kind} size={22} />
+      </View>
+      <View style={styles.flex}>
+        <Text style={styles.rowName} numberOfLines={1}>{name}</Text>
+        {meta ? <Text style={styles.rowMeta} numberOfLines={1}>{meta}</Text> : null}
+      </View>
+      {selected ? (
+        <View style={styles.check}>
+          <Ionicons name="checkmark" size={16} color="#FFFFFF" />
+        </View>
+      ) : (
+        <View style={styles.radio} />
+      )}
+    </Pressable>
+  );
+}
+
+// 新しく追加する場所。手入力のときだけ神社かお寺かを選べる
+function NewPlaceRow({ place, onKind }: { place: NewPlace; onKind?: (kind: PlaceKind) => void }) {
+  return (
+    <View style={styles.newPlace}>
+      <Row kind={place.kind} name={place.name} meta="新しく追加します" first last selected onPress={() => {}} />
+      {onKind && (
+        <ChipGroup>
+          {(Object.keys(PLACE_KIND_LABEL) as PlaceKind[]).map((k) => (
+            <Chip key={k} label={PLACE_KIND_LABEL[k]} selected={place.kind === k} onPress={() => onKind(k)} />
+          ))}
+        </ChipGroup>
+      )}
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   listContent: { paddingHorizontal: 20, paddingBottom: 24 },
-  headerBlock: { gap: 18, paddingTop: 8, paddingBottom: 8 },
+  headerBlock: { gap: 16, paddingTop: 8, paddingBottom: 8 },
   search: {
     height: 48,
     paddingHorizontal: 14,
@@ -269,10 +313,13 @@ const styles = StyleSheet.create({
   },
   searchInput: { flex: 1, fontFamily: fonts.regular, fontSize: 16, color: colors.ink },
   sectionLabel: { fontFamily: fonts.regular, fontSize: 12, color: colors.muted },
+  sectionGap: { marginBottom: 8 },
+  hint: { paddingVertical: 8, fontFamily: fonts.regular, fontSize: 14, color: colors.muted, textAlign: 'center' },
+  error: { fontFamily: fonts.regular, fontSize: 12, color: colors.danger },
   row: {
-    minHeight: 68,
+    minHeight: 64,
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 10,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
@@ -304,24 +351,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   radio: { width: 24, height: 24, borderRadius: 12, borderWidth: 2, borderColor: colors.lineStrong },
-  empty: { paddingVertical: 16, fontFamily: fonts.regular, fontSize: 14, color: colors.muted, textAlign: 'center' },
-  addBlock: { marginTop: 16 },
-  addForm: {
-    gap: 14,
-    padding: 16,
-    borderRadius: radius.md,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.line,
-  },
-  addTitle: { fontSize: 15, fontFamily: fonts.bold, color: colors.ink },
-  addActions: { flexDirection: 'row', gap: 10 },
-  kindGroup: { gap: 8 },
-  linked: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  linkedText: { flex: 1, fontFamily: fonts.regular, fontSize: 12, color: colors.inkSoft },
-  linkedClear: { fontFamily: fonts.regular, fontSize: 12, color: colors.accent },
-  addLink: { minHeight: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
-  addLinkLabel: { fontSize: 14, fontFamily: fonts.regular, color: colors.accent },
+  newPlace: { gap: 10 },
+  footer: { marginTop: 16, gap: 12 },
+  action: { minHeight: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
+  actionLabel: { flexShrink: 1, fontSize: 14, fontFamily: fonts.regular, color: colors.accent },
+  pressed: { opacity: 0.7 },
   bottomBar: {
     paddingHorizontal: 20,
     paddingTop: 12,
@@ -329,4 +363,5 @@ const styles = StyleSheet.create({
     borderTopColor: colors.line,
     backgroundColor: colors.paper,
   },
+  attribution: { marginTop: 6, textAlign: 'right', fontFamily: fonts.regular, fontSize: 11, color: colors.muted },
 });

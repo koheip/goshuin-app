@@ -1,7 +1,7 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 import { randomUUID } from 'expo-crypto';
 
-const LATEST_VERSION = 6;
+const LATEST_VERSION = 7;
 
 // PRAGMA user_version でスキーマの版を管理し、足りない分だけ順に適用する
 export async function migrateDbIfNeeded(db: SQLiteDatabase) {
@@ -127,6 +127,15 @@ export async function migrateDbIfNeeded(db: SQLiteDatabase) {
       CREATE INDEX IF NOT EXISTS idx_visit_photos_visit ON visit_photos(visit_id);
     `);
     version = 6;
+  }
+
+  if (version < 7) {
+    // 神社の系統（稲荷・八幡など）。null は名前から自動で判断する。ほかの版と同じく、やり直しても壊れないようにする
+    const columns = await db.getAllAsync<{ name: string }>('PRAGMA table_info(shrines)');
+    if (!columns.some((c) => c.name === 'lineage')) {
+      await db.execAsync('ALTER TABLE shrines ADD COLUMN lineage TEXT');
+    }
+    version = 7;
   }
 
   await db.execAsync(`PRAGMA user_version = ${version}`);
