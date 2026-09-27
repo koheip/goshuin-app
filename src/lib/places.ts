@@ -6,6 +6,7 @@ import type { Coords } from '@/lib/location';
 // Google Places API (New) の Text Search で神社・お寺を探す。
 // キーはアプリに埋め込まれるので、Google Cloud でアプリと API の制限を必ずかける
 const API_KEY = process.env.EXPO_PUBLIC_GOOGLE_PLACES_API_KEY;
+const ANDROID_CERT_SHA1 = process.env.EXPO_PUBLIC_ANDROID_CERT_SHA1;
 const TEXT_ENDPOINT = 'https://places.googleapis.com/v1/places:searchText';
 const NEARBY_ENDPOINT = 'https://places.googleapis.com/v1/places:searchNearby';
 const FIELD_MASK = 'places.id,places.displayName,places.formattedAddress,places.types';
@@ -61,8 +62,17 @@ function requestHeaders(fieldMask: string): Record<string, string> {
   };
   // キーを「このアプリからだけ使える」ように制限しているとき、どのアプリからの呼び出しかを伝える
   if (Platform.OS === 'ios') headers['X-Ios-Bundle-Identifier'] = BUNDLE_ID;
-  if (Platform.OS === 'android') headers['X-Android-Package'] = BUNDLE_ID;
+  if (Platform.OS === 'android') {
+    headers['X-Android-Package'] = BUNDLE_ID;
+    if (ANDROID_CERT_SHA1) headers['X-Android-Cert'] = ANDROID_CERT_SHA1.replace(/:/g, '').toUpperCase();
+  }
   return headers;
+}
+
+async function throwPlacesError(res: Response): Promise<never> {
+  const payload = await res.json().catch(() => null) as { error?: { message?: string } } | null;
+  const detail = payload?.error?.message;
+  throw new Error(`検索に失敗しました（${res.status}）${detail ? `: ${detail}` : ''}`);
 }
 
 export async function searchPlaces(query: string, signal?: AbortSignal): Promise<PlaceCandidate[]> {
@@ -72,7 +82,7 @@ export async function searchPlaces(query: string, signal?: AbortSignal): Promise
     body: JSON.stringify({ textQuery: query, languageCode: 'ja', regionCode: 'JP', pageSize: 10 }),
     signal,
   });
-  if (!res.ok) throw new Error(`検索に失敗しました（${res.status}）`);
+  if (!res.ok) return throwPlacesError(res);
   return parsePlaces(await res.json());
 }
 
@@ -117,6 +127,6 @@ export async function searchNearbyPlaces(center: Coords, radius: number, signal?
     }),
     signal,
   });
-  if (!res.ok) throw new Error(`検索に失敗しました（${res.status}）`);
+  if (!res.ok) return throwPlacesError(res);
   return parseNearbyPlaces(await res.json(), center);
 }

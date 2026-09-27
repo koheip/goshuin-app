@@ -242,10 +242,10 @@ export default function SelectShrineScreen() {
       />
       <View style={[styles.bottomBar, { paddingBottom: Math.max(insets.bottom, 16) }]}>
         <Button
-          label={draft.shrine ? `次へ：${draft.shrine.name}の御朱印を撮影` : '神社・お寺を選んでください'}
+          label="次へ：参拝内容を入力"
           disabled={!draft.shrine}
-          onPress={() => router.push('/record/photo')}
-          icon={<Ionicons name="camera-outline" size={20} color="#FFFFFF" />}
+          onPress={() => { update({ recordMode: 'visit' }); router.push('/record/memo'); }}
+          icon={<Ionicons name="footsteps-outline" size={20} color="#FFFFFF" />}
         />
       </View>
     </KeyboardAvoidingView>

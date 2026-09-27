@@ -130,12 +130,12 @@ export function FieldLabel({ children }: { children: string }) {
   return <Text style={styles.fieldLabel}>{children}</Text>;
 }
 
-const STEPS = ['神社・お寺', '撮影', 'メモ（任意）'];
+const STEPS = ['神社・お寺', '参拝内容'];
 
-// 記録の進み具合（1〜3）
-export function Stepper({ current }: { current: 1 | 2 | 3 }) {
+// 記録の進み具合（1〜2）
+export function Stepper({ current }: { current: 1 | 2 }) {
   return (
-    <View style={styles.stepper} accessibilityLabel={`ステップ ${current} / 3：${STEPS[current - 1]}`}>
+    <View style={styles.stepper} accessibilityLabel={`ステップ ${current} / 2：${STEPS[current - 1]}`}>
       {STEPS.map((label, i) => {
         const step = i + 1;
         const done = step <= current;

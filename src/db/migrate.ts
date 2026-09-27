@@ -1,7 +1,7 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 import { randomUUID } from 'expo-crypto';
 
-const LATEST_VERSION = 5;
+const LATEST_VERSION = 6;
 
 // PRAGMA user_version でスキーマの版を管理し、足りない分だけ順に適用する
 export async function migrateDbIfNeeded(db: SQLiteDatabase) {
@@ -113,6 +113,20 @@ export async function migrateDbIfNeeded(db: SQLiteDatabase) {
       new Date().toISOString(),
     );
     version = 5;
+  }
+
+  if (version < 6) {
+    await db.execAsync(`
+      CREATE TABLE IF NOT EXISTS visit_photos (
+        id TEXT PRIMARY KEY NOT NULL,
+        visit_id TEXT NOT NULL REFERENCES visits(id) ON DELETE CASCADE,
+        image_file TEXT NOT NULL,
+        position INTEGER NOT NULL DEFAULT 0,
+        created_at TEXT NOT NULL
+      );
+      CREATE INDEX IF NOT EXISTS idx_visit_photos_visit ON visit_photos(visit_id);
+    `);
+    version = 6;
   }
 
   await db.execAsync(`PRAGMA user_version = ${version}`);

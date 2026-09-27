@@ -63,8 +63,15 @@ export default function TabLayout() {
       <Tabs.Screen
         name="map"
         options={{
-          title: '地図',
+          title: 'めぐる',
           tabBarIcon: ({ color, size }) => <Ionicons name="map-outline" size={size} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="book"
+        options={{
+          title: '記録',
+          tabBarIcon: ({ color, size }) => <Ionicons name="book" size={size} color={color} />,
         }}
       />
       <Tabs.Screen
@@ -75,17 +82,9 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="book"
-        options={{
-          title: '御朱印帳',
-          tabBarIcon: ({ color, size }) => <Ionicons name="book" size={size} color={color} />,
-        }}
-      />
-      <Tabs.Screen
         name="avatar"
         options={{
-          title: 'ME',
-          tabBarIcon: ({ color, size }) => <Ionicons name="person" size={size} color={color} />,
+          href: null,
         }}
       />
       <Tabs.Screen

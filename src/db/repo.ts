@@ -1,11 +1,16 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 import { randomUUID } from 'expo-crypto';
 
-import type { Book, BookWithStats, GoshuinEntry, GoshuinKind, PlaceKind, Shrine } from './types';
+import type { Book, BookWithStats, GoshuinEntry, GoshuinKind, PlaceKind, Shrine, VisitEntry } from './types';
 
 export type ShrineWithStats = Shrine & {
   visitCount: number;
   lastVisitedOn: string | null;
+};
+
+export type ShrineCatalogEntry = ShrineWithStats & {
+  latestImageFile: string | null;
+  latestMemo: string | null;
 };
 
 export type JourneyStats = {
@@ -142,6 +147,28 @@ export async function listLinkedShrines(db: SQLiteDatabase): Promise<ShrineWithS
      LEFT JOIN visits v ON v.shrine_id = s.id
      WHERE s.place_id IS NOT NULL
      GROUP BY s.id`,
+  );
+}
+
+// 実際に参拝した場所だけを、図鑑用に最新記録付きで返す
+export async function listVisitedShrines(db: SQLiteDatabase): Promise<ShrineCatalogEntry[]> {
+  return db.getAllAsync<ShrineCatalogEntry>(
+    `SELECT ${SHRINE_COLUMNS},
+       COUNT(DISTINCT v.id) AS visitCount,
+       MAX(v.visited_on) AS lastVisitedOn,
+       (SELECT g.image_file
+          FROM visits recent_v
+          JOIN goshuin g ON g.visit_id = recent_v.id
+         WHERE recent_v.shrine_id = s.id
+         ORDER BY recent_v.visited_on DESC, g.created_at DESC LIMIT 1) AS latestImageFile,
+       (SELECT recent_v.memo
+          FROM visits recent_v
+         WHERE recent_v.shrine_id = s.id AND recent_v.memo IS NOT NULL AND recent_v.memo != ''
+         ORDER BY recent_v.visited_on DESC, recent_v.created_at DESC LIMIT 1) AS latestMemo
+     FROM shrines s
+     JOIN visits v ON v.shrine_id = s.id
+     GROUP BY s.id
+     ORDER BY lastVisitedOn DESC, s.name ASC`,
   );
 }
 
@@ -284,6 +311,7 @@ export type NewVisit = {
   omikuji: string | null;
   memo: string | null;
   goshuin: { imageFile: string; kind: GoshuinKind; fee: number | null }[];
+  photos?: { imageFile: string }[];
 };
 
 // 1回の参拝と、その参拝で授かった御朱印をまとめて保存する
@@ -325,6 +353,13 @@ export async function saveVisit(db: SQLiteDatabase, bookId: string, input: NewVi
         now,
       );
     }
+    for (const [i, photo] of (input.photos ?? []).entries()) {
+      await db.runAsync(
+        `INSERT INTO visit_photos (id, visit_id, image_file, position, created_at)
+         VALUES (?, ?, ?, ?, ?)`,
+        randomUUID(), visitId, photo.imageFile, i, now,
+      );
+    }
   });
   return visitId;
 }
@@ -347,6 +382,39 @@ export async function listBookEntries(db: SQLiteDatabase, bookId: string): Promi
   );
 }
 
+// 以前の「帳」の区切りに関係なく、すべての参拝記録を一つの一覧として返す
+export async function listAllEntries(db: SQLiteDatabase): Promise<GoshuinEntry[]> {
+  return db.getAllAsync<GoshuinEntry>(
+    `${ENTRY_SELECT} ORDER BY v.visited_on, v.created_at, g.created_at`,
+  );
+}
+
+// 御朱印を授からなかった日も含め、すべての参拝を新しい順に返す
+export async function listVisitEntries(db: SQLiteDatabase): Promise<VisitEntry[]> {
+  return db.getAllAsync<VisitEntry>(
+    `SELECT v.id, v.visited_on AS visitedOn, v.weather, v.companions, v.omikuji, v.memo,
+       s.id AS shrineId, s.name AS shrineName, s.kana AS shrineKana, s.kind AS shrineKind,
+       s.prefecture, s.address,
+       COUNT(g.id) AS goshuinCount,
+       (SELECT COUNT(*) FROM visit_photos photo_count WHERE photo_count.visit_id = v.id) AS photoCount,
+       (SELECT latest.id FROM goshuin latest WHERE latest.visit_id = v.id
+        ORDER BY latest.created_at DESC LIMIT 1) AS latestGoshuinId,
+       (SELECT latest_photo.image_file FROM visit_photos latest_photo WHERE latest_photo.visit_id = v.id
+        ORDER BY latest_photo.position DESC, latest_photo.created_at DESC LIMIT 1) AS latestPhotoFile,
+       COALESCE(
+         (SELECT latest_photo.image_file FROM visit_photos latest_photo WHERE latest_photo.visit_id = v.id
+          ORDER BY latest_photo.position DESC, latest_photo.created_at DESC LIMIT 1),
+         (SELECT latest.image_file FROM goshuin latest WHERE latest.visit_id = v.id
+          ORDER BY latest.created_at DESC LIMIT 1)
+       ) AS latestImageFile
+     FROM visits v
+     JOIN shrines s ON s.id = v.shrine_id
+     LEFT JOIN goshuin g ON g.visit_id = v.id
+     GROUP BY v.id
+     ORDER BY v.visited_on DESC, v.created_at DESC`,
+  );
+}
+
 export async function getEntry(db: SQLiteDatabase, goshuinId: string): Promise<GoshuinEntry | null> {
   return db.getFirstAsync<GoshuinEntry>(`${ENTRY_SELECT} WHERE g.id = ?`, goshuinId);
 }
@@ -361,7 +429,10 @@ export async function deleteGoshuin(db: SQLiteDatabase, goshuinId: string): Prom
   await db.withTransactionAsync(async () => {
     await db.runAsync('DELETE FROM goshuin WHERE id = ?', goshuinId);
     await db.runAsync(
-      'DELETE FROM visits WHERE id = ? AND NOT EXISTS (SELECT 1 FROM goshuin WHERE visit_id = ?)',
+      `DELETE FROM visits WHERE id = ?
+       AND NOT EXISTS (SELECT 1 FROM goshuin WHERE visit_id = ?)
+       AND NOT EXISTS (SELECT 1 FROM visit_photos WHERE visit_id = ?)`,
+      row.visitId,
       row.visitId,
       row.visitId,
     );

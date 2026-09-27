@@ -14,6 +14,8 @@ import {
   listBookEntries,
   listBooks,
   listMappedPlaces,
+  listVisitEntries,
+  listVisitedShrines,
   renameBook,
   reorderBook,
   saveVisit,
@@ -98,6 +100,17 @@ describe('migrateDbIfNeeded', () => {
 });
 
 describe('神社・お寺', () => {
+  it('参拝済み神社を図鑑用の最新記録付きで返す', async () => {
+    const book = await getCurrentBook(db);
+    const shrine = await createShrine(db, { name: '明治神宮', prefecture: '東京都' });
+    await saveVisit(db, book.id, { ...visit(shrine.id, '2025-04-01', ['old.jpg']), memo: '最初の参拝' });
+    await saveVisit(db, book.id, { ...visit(shrine.id, '2025-05-01', ['new.jpg']), memo: '新緑がきれい' });
+
+    expect(await listVisitedShrines(db)).toEqual([
+      expect.objectContaining({ name: '明治神宮', visitCount: 2, lastVisitedOn: '2025-05-01', latestImageFile: 'new.jpg', latestMemo: '新緑がきれい' }),
+    ]);
+  });
+
   it('お寺として登録でき、検索で見つかる', async () => {
     await createShrine(db, { name: '浅草寺', kana: 'せんそうじ', kind: 'temple' });
     await createShrine(db, { name: '明治神宮', kana: 'めいじじんぐう' });
@@ -126,6 +139,38 @@ describe('神社・お寺', () => {
 });
 
 describe('参拝の保存と並び順', () => {
+  it('御朱印がなくても参拝を保存して一覧に表示できる', async () => {
+    const book = await getCurrentBook(db);
+    const shrine = await createShrine(db, { name: '日々神社' });
+    await saveVisit(db, book.id, { ...visit(shrine.id, '2025-07-01', []), memo: '朝のお参り' });
+
+    expect(await listBookEntries(db, book.id)).toHaveLength(0);
+    expect(await listVisitEntries(db)).toEqual([
+      expect.objectContaining({ shrineName: '日々神社', goshuinCount: 0, latestGoshuinId: null, memo: '朝のお参り' }),
+    ]);
+    expect(await getJourneyStats(db)).toEqual({ visitCount: 1, shrineCount: 1, goshuinCount: 0 });
+  });
+
+  it('参拝写真を御朱印とは分けて保存し、一覧の表紙に使える', async () => {
+    const book = await getCurrentBook(db);
+    const shrine = await createShrine(db, { name: '写真神社' });
+    await saveVisit(db, book.id, {
+      ...visit(shrine.id, '2025-07-02', []),
+      photos: [{ imageFile: 'torii.jpg' }, { imageFile: 'garden.jpg' }],
+    });
+
+    expect(await listVisitEntries(db)).toEqual([
+      expect.objectContaining({
+        shrineName: '写真神社',
+        goshuinCount: 0,
+        photoCount: 2,
+        latestPhotoFile: 'garden.jpg',
+        latestImageFile: 'garden.jpg',
+      }),
+    ]);
+    expect(await listBookEntries(db, book.id)).toHaveLength(0);
+  });
+
   it('図鑑用に参拝・場所・御朱印の数を集計する', async () => {
     const book = await getCurrentBook(db);
     const first = await createShrine(db, { name: '一の宮' });

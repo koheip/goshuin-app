@@ -57,8 +57,6 @@ export default function RootLayout() {
         <Stack.Screen name="backup" options={{ title: 'バックアップ' }} />
         <Stack.Screen name="nearby" options={{ title: '近くの神社・お寺' }} />
         <Stack.Screen name="reminder" options={{ headerShown: false }} />
-        <Stack.Screen name="books/index" options={{ title: '御朱印帳' }} />
-        <Stack.Screen name="books/[id]" options={{ title: '帳の名前と並び順' }} />
       </Stack>
       </TutorialProvider>
       </SQLiteProvider>

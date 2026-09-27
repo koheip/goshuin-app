@@ -8,7 +8,7 @@ import { imageDir } from './images';
 // バックアップは1つの JSON ファイル。DBの行をそのまま持ち、写真は base64 で埋め込む
 const FORMAT = 'goshuin-app-backup';
 // 版2から goshuin.position は帳の中の並び順（版1は参拝の中の順番）
-const FORMAT_VERSION = 2;
+const FORMAT_VERSION = 3;
 
 // 復元時に書き込む列。テーブルの定義（db/migrate.ts）と合わせる
 const TABLES = {
@@ -25,6 +25,7 @@ const TABLES = {
     'id', 'visit_id', 'book_id', 'image_file', 'kind', 'fee', 'position',
     'created_at', 'updated_at',
   ],
+  visit_photos: ['id', 'visit_id', 'image_file', 'position', 'created_at'],
 } as const;
 
 type TableName = keyof typeof TABLES;
@@ -39,7 +40,7 @@ type Backup = {
 };
 
 // 親→子の順。削除はこの逆順で行う
-const INSERT_ORDER: TableName[] = ['shrines', 'books', 'visits', 'goshuin'];
+const INSERT_ORDER: TableName[] = ['shrines', 'books', 'visits', 'goshuin', 'visit_photos'];
 
 const IMAGE_NAME = /^[0-9a-f-]+\.jpg$/i;
 
@@ -54,6 +55,11 @@ export async function exportBackup(db: SQLiteDatabase): Promise<File> {
 
   const images: Record<string, string> = {};
   for (const row of tables.goshuin) {
+    const fileName = String(row.image_file);
+    const file = new File(imageDir(), fileName);
+    if (file.exists) images[fileName] = await file.base64();
+  }
+  for (const row of tables.visit_photos) {
     const fileName = String(row.image_file);
     const file = new File(imageDir(), fileName);
     if (file.exists) images[fileName] = await file.base64();
@@ -90,6 +96,9 @@ function parseBackup(text: string): Backup {
   }
   if (typeof b.version !== 'number' || b.version > FORMAT_VERSION) {
     throw new BackupFormatError('新しい版のアプリで作られたバックアップです。アプリを更新してください');
+  }
+  if (b.version < 3 && b.tables && !('visit_photos' in b.tables)) {
+    (b.tables as Record<string, Row[]>).visit_photos = [];
   }
   for (const name of INSERT_ORDER) {
     if (!Array.isArray(b.tables[name])) throw new BackupFormatError('バックアップの中身が壊れています');
@@ -137,7 +146,9 @@ export async function restoreBackup(db: SQLiteDatabase, uri: string): Promise<nu
   }
 
   // どの記録からも使われなくなった写真を片付ける
-  const keep = new Set(backup.tables.goshuin.map((row) => String(row.image_file)));
+  const keep = new Set(
+    [...backup.tables.goshuin, ...backup.tables.visit_photos].map((row) => String(row.image_file)),
+  );
   for (const entry of dir.list()) {
     if (entry instanceof File && !keep.has(entry.name)) entry.delete();
   }

@@ -1,6 +1,6 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -20,13 +20,14 @@ import { GoshuinPage } from '@/components/GoshuinPage';
 import { KamiLoadingScreen } from '@/components/KamiLoadingScreen';
 import { Sakura, Shimenawa, Torii } from '@/components/shrine';
 import { Button, DreamyBackground, ScreenTitle, Sparkle } from '@/components/ui';
-import { getBook, getCurrentBook, listBookEntries } from '@/db/repo';
-import { GOSHUIN_KIND_LABEL, type Book, type GoshuinEntry } from '@/db/types';
+import { listAllEntries, listVisitEntries } from '@/db/repo';
+import { GOSHUIN_KIND_LABEL, type GoshuinEntry, type VisitEntry } from '@/db/types';
 import { formatDot } from '@/lib/dates';
 import { imageUri } from '@/lib/images';
 import { colors, fonts, glow, gradients, radius } from '@/theme';
 
 type Mode = 'spread' | 'grid';
+type Collection = 'visits' | 'goshuin';
 type Spread = { key: string; left?: GoshuinEntry; right?: GoshuinEntry };
 
 const SIDE_PADDING = 16;
@@ -36,30 +37,23 @@ const GRID_COLUMNS = 2;
 export default function BookScreen() {
   const db = useSQLiteContext();
   const { width: windowWidth } = useWindowDimensions();
-  // 帳の一覧から選んだ帳。なければ記録中の帳を開く
-  const { book: bookParam } = useLocalSearchParams<{ book?: string }>();
-  const [book, setBook] = useState<Book | null>(null);
   const [entries, setEntries] = useState<GoshuinEntry[] | null>(null);
+  const [visits, setVisits] = useState<VisitEntry[] | null>(null);
+  const [collection, setCollection] = useState<Collection>('visits');
   const [mode, setMode] = useState<Mode>('grid');
   const [spreadIndex, setSpreadIndex] = useState(0);
   const listRef = useRef<FlatList<Spread>>(null);
   const prevCount = useRef<number | null>(null);
-  const prevBookId = useRef<string | null>(null);
   const pendingScroll = useRef<number | null>(null);
 
   useFocusEffect(
     useCallback(() => {
       let active = true;
       (async () => {
-        const current = (bookParam ? await getBook(db, bookParam) : null) ?? (await getCurrentBook(db));
-        const rows = await listBookEntries(db, current.id);
+        const [rows, visitRows] = await Promise.all([listAllEntries(db), listVisitEntries(db)]);
         if (!active) return;
-        if (prevBookId.current !== current.id) {
-          prevBookId.current = current.id;
-          prevCount.current = null;
-        }
-        setBook(current);
         setEntries(rows);
+        setVisits(visitRows);
         // 最初の表示と、新しい御朱印が増えたときは最新の見開きを開く
         const lastSpread = Math.max(Math.ceil(rows.length / 2) - 1, 0);
         if (prevCount.current === null || rows.length > prevCount.current) {
@@ -73,7 +67,7 @@ export default function BookScreen() {
       return () => {
         active = false;
       };
-    }, [db, bookParam]),
+    }, [db]),
   );
 
   const spreads = useMemo<Spread[]>(() => {
@@ -117,27 +111,13 @@ export default function BookScreen() {
         <View style={styles.headerText}>
           <Text style={styles.tagline}>MY SACRED MEMORIES</Text>
           <View style={styles.titleRow}>
-            <ScreenTitle>MY BOOK</ScreenTitle>
+            <ScreenTitle>参拝の記録</ScreenTitle>
             <Text style={styles.titleHeart}>♡</Text>
             <Sparkle size={16} color={colors.accent} />
             <Sparkle size={10} color={colors.violet} style={styles.titleSparkleSmall} />
           </View>
         </View>
         <View style={styles.headerActions}>
-          {book && (
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={`${book.name}。御朱印帳を切り替える`}
-              onPress={() => router.push('/books')}
-              style={({ pressed }) => [styles.bookPill, pressed && { backgroundColor: colors.track }]}
-            >
-              <LinearGradient colors={gradients.primary} style={styles.bookSwatch} />
-              <Text style={styles.bookName} numberOfLines={1}>
-                {book.name}
-              </Text>
-              <Ionicons name="chevron-down" size={14} color={colors.muted} />
-            </Pressable>
-          )}
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="バックアップ"
@@ -150,7 +130,20 @@ export default function BookScreen() {
         </View>
       </View>
 
-      {entries === null ? <KamiLoadingScreen variant="loading" message="御朱印帳をひらいています…" /> : entries.length === 0 ? (
+      <View style={styles.collectionTabs} accessibilityRole="tablist">
+        {([['visits', '参拝'], ['goshuin', '御朱印']] as const).map(([value, label]) => <Pressable key={value} accessibilityRole="tab" accessibilityState={{ selected: collection === value }} onPress={() => setCollection(value)} style={[styles.collectionTab, collection === value && styles.collectionTabActive]}><Ionicons name={value === 'visits' ? 'footsteps-outline' : 'image-outline'} size={17} color={collection === value ? '#FFFFFF' : colors.violet} /><Text style={[styles.collectionTabText, collection === value && styles.collectionTabTextActive]}>{label}</Text></Pressable>)}
+      </View>
+
+      {entries === null || visits === null ? <KamiLoadingScreen variant="loading" message="参拝の記録をひらいています…" /> : collection === 'visits' ? (
+        <FlatList
+          key="visit-records"
+          data={visits}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.visitList}
+          ListEmptyComponent={<View style={styles.visitEmpty}><View style={styles.emptyToriiCircle}><Torii size={48} /></View><Text style={styles.emptyTitle}>まだ参拝の記録はありません</Text><Text style={styles.emptyBody}>日々のお参りを、御朱印がない日も気軽に残せます。</Text><Button label="最初の参拝を記録する" onPress={() => router.push('/record')} icon={<Ionicons name="add" size={20} color="#FFFFFF" />} style={styles.emptyButton} /></View>}
+          renderItem={({ item }) => <VisitCard visit={item} />}
+        />
+      ) : entries.length === 0 ? (
         <View style={styles.empty}>
           <LinearGradient colors={gradients.cover} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[styles.cover, { width: spreadWidth }]}>
             <Shimenawa width={spreadWidth - COVER_PADDING * 2} shide={5} style={styles.coverRope} />
@@ -165,7 +158,7 @@ export default function BookScreen() {
             <Sakura size={14} color={colors.accent} style={styles.emptySakuraRight} />
           </View>
           <Text style={styles.emptyTitle}>まだ御朱印はありません</Text>
-          <Text style={styles.emptyBody}>参拝して授かった御朱印を撮影すると、ここに一冊の帳面として綴じられます。</Text>
+          <Text style={styles.emptyBody}>御朱印を授かった日に写真を追加すると、ここへコレクションされます。</Text>
           <Button
             label="最初の参拝を記録する"
             onPress={() => router.push('/record')}
@@ -185,7 +178,7 @@ export default function BookScreen() {
                 style={[styles.segmentItem, mode === m && styles.segmentItemActive]}
               >
                 <Text style={[styles.segmentLabel, mode === m && styles.segmentLabelActive]}>
-                  {m === 'spread' ? '見開き' : '御朱印帳'}
+                  {m === 'spread' ? '見開き' : '一覧'}
                 </Text>
               </Pressable>
             ))}
@@ -278,8 +271,28 @@ export default function BookScreen() {
           )}
         </>
       )}
+      {visits !== null && visits.length > 0 && (
+        <Pressable accessibilityRole="button" accessibilityLabel="新しい参拝を記録する" onPress={() => router.push('/record')} style={({ pressed }) => [styles.recordButton, pressed && styles.recordButtonPressed]}>
+          <LinearGradient colors={gradients.primary} style={StyleSheet.absoluteFill} />
+          <Ionicons name="add" size={22} color="#FFFFFF" />
+          <Text style={styles.recordButtonText}>参拝を記録</Text>
+        </Pressable>
+      )}
     </SafeAreaView>
   );
+}
+
+function VisitCard({ visit }: { visit: VisitEntry }) {
+  const open = () => visit.latestGoshuinId && router.push(`/goshuin/${visit.latestGoshuinId}`);
+  return <Pressable accessibilityRole={visit.latestGoshuinId ? 'button' : undefined} onPress={open} style={({ pressed }) => [styles.visitCard, pressed && visit.latestGoshuinId && { opacity: .78 }]}>
+    {visit.latestImageFile ? <Image source={{ uri: imageUri(visit.latestImageFile) }} style={styles.visitImage} resizeMode="cover" /> : <View style={styles.visitIcon}><Torii size={39} /></View>}
+    <View style={styles.visitCopy}>
+      <View style={styles.visitTitleRow}><Text style={styles.visitName} numberOfLines={1}>{visit.shrineName}</Text>{visit.photoCount > 0 && <View style={styles.goshuinBadge}><Ionicons name="camera-outline" size={11} color={colors.accent} /><Text style={styles.goshuinBadgeText}>写真 {visit.photoCount}</Text></View>}{visit.goshuinCount > 0 && <View style={styles.goshuinBadge}><Ionicons name="image-outline" size={11} color={colors.accent} /><Text style={styles.goshuinBadgeText}>御朱印 {visit.goshuinCount}</Text></View>}</View>
+      <Text style={styles.visitDate}>{formatDot(visit.visitedOn)}{visit.weather ? ` · ${visit.weather}` : ''}</Text>
+      <Text style={styles.visitMemo} numberOfLines={2}>{visit.memo || (visit.goshuinCount > 0 ? '御朱印と一緒に記録しました' : '日々の参拝を記録しました')}</Text>
+    </View>
+    {visit.latestGoshuinId && <Ionicons name="chevron-forward" size={18} color={colors.violet} />}
+  </Pressable>;
 }
 
 function Caption({ entry, align }: { entry?: GoshuinEntry; align: 'left' | 'right' }) {
@@ -354,21 +367,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   tagline: { fontFamily: fonts.bold, fontSize: 10, letterSpacing: 2, color: colors.violet },
-  bookPill: {
-    height: 40,
-    paddingHorizontal: 14,
-    borderRadius: 20,
-    borderWidth: 1.5,
-    borderColor: colors.lineStrong,
-    backgroundColor: colors.surface,
-    boxShadow: glow.soft,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    flexShrink: 1,
-  },
-  bookSwatch: { width: 14, height: 14, borderRadius: 7 },
-  bookName: { flexShrink: 1, fontFamily: fonts.regular, fontSize: 13, color: colors.ink },
+  collectionTabs: { marginHorizontal: 20, marginBottom: 14, padding: 4, flexDirection: 'row', borderRadius: 22, backgroundColor: 'rgba(255,255,255,.72)', borderWidth: 1, borderColor: colors.line }, collectionTab: { flex: 1, minHeight: 40, borderRadius: 19, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }, collectionTabActive: { backgroundColor: colors.violet, boxShadow: glow.soft }, collectionTabText: { fontFamily: fonts.bold, fontSize: 12, color: colors.inkSoft }, collectionTabTextActive: { color: '#FFFFFF' },
+  visitList: { paddingHorizontal: 16, paddingBottom: 90, gap: 10 }, visitCard: { minHeight: 104, padding: 10, flexDirection: 'row', alignItems: 'center', gap: 11, borderRadius: radius.md, backgroundColor: 'rgba(255,255,255,.84)', borderWidth: 1, borderColor: colors.line, boxShadow: glow.soft }, visitImage: { width: 82, height: 82, borderRadius: 17, backgroundColor: colors.track }, visitIcon: { width: 82, height: 82, borderRadius: 17, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.accentTint }, visitCopy: { flex: 1, gap: 4 }, visitTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 6 }, visitName: { flex: 1, fontFamily: fonts.display, fontSize: 15, color: colors.ink }, visitDate: { fontFamily: fonts.bold, fontSize: 9, color: colors.violet }, visitMemo: { fontFamily: fonts.regular, fontSize: 10, lineHeight: 16, color: colors.muted }, goshuinBadge: { paddingHorizontal: 7, paddingVertical: 4, borderRadius: 10, flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: colors.accentTint }, goshuinBadgeText: { fontFamily: fonts.bold, fontSize: 8, color: colors.accentOnTint }, visitEmpty: { paddingHorizontal: 20, paddingTop: 32, alignItems: 'center', gap: 11 }, emptyToriiCircle: { width: 82, height: 82, borderRadius: 41, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.accentTint },
   segment: {
     marginHorizontal: 20,
     marginBottom: 16,
@@ -435,4 +435,7 @@ const styles = StyleSheet.create({
   emptyTitle: { fontSize: 16, fontFamily: fonts.bold, color: colors.ink },
   emptyBody: { fontFamily: fonts.regular, fontSize: 13, lineHeight: 20, color: colors.muted, textAlign: 'center', paddingHorizontal: 12 },
   emptyButton: { marginTop: 8, alignSelf: 'stretch', borderRadius: radius.md },
+  recordButton: { position: 'absolute', right: 18, bottom: 18, minHeight: 50, paddingHorizontal: 18, overflow: 'hidden', borderRadius: 25, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, boxShadow: glow.pink },
+  recordButtonPressed: { opacity: .82, transform: [{ scale: .98 }] },
+  recordButtonText: { color: '#FFFFFF', fontFamily: fonts.bold, fontSize: 13 },
 });

@@ -6,6 +6,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
   const googleMapsApiKey = process.env.GOOGLE_MAPS_ANDROID_API_KEY;
   return {
     ...(config as ExpoConfig),
+    plugins: [...(config.plugins ?? []), 'expo-audio'],
     android: {
       ...config.android,
       ...(googleMapsApiKey && {

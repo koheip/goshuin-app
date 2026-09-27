@@ -13,9 +13,13 @@ export type DraftGoshuin = {
   fee: string;
 };
 
+export type DraftPhoto = { key: string; tempUri: string };
+
 export type Draft = {
   shrine: DraftShrine | null;
+  recordMode: 'visit' | 'goshuin' | null;
   goshuin: DraftGoshuin[];
+  photos: DraftPhoto[];
   visitedOn: string;
   weather: string | null;
   companions: string;
@@ -26,7 +30,9 @@ export type Draft = {
 function emptyDraft(): Draft {
   return {
     shrine: null,
+    recordMode: null,
     goshuin: [],
+    photos: [],
     visitedOn: today(),
     weather: null,
     companions: '',

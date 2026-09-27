@@ -6,7 +6,7 @@ import { equipmentArtwork } from '@/avatar/assets';
 import { glow } from '@/theme';
 
 const avatar = require('../../assets/avatar-base.png');
-const pixel = require('../../assets/avatar-pixel-sprite.png');
+const guidePixelSprite = require('../../assets/kami-guide-pixel-soft-v2.png');
 const blessingBackgrounds: Record<BlessingId, number> = {
   amaterasu: require('../../assets/blessing-amaterasu.png'),
   susanoo: require('../../assets/blessing-susanoo.png'),
@@ -29,15 +29,22 @@ export function IllustratedAvatar({ blessing, equipment, style }: { blessing: Bl
 }
 
 export function PixelAvatar({ blessing, equipment, direction = 0, size = 132 }: { blessing: Blessing; equipment: EquipmentId[]; direction?: 0 | 1 | 2 | 3; size?: number }) {
-  const top = direction > 1 ? '-100%' : '0%';
-  const left = direction % 2 ? '-100%' : '0%';
+  void equipment;
+  void direction;
+  const cell = guideCells[blessing.id];
   return (
-    <View style={[styles.pixelWrap, { width: size, height: size, backgroundColor: blessing.pale }] }>
-      <Image source={pixel} resizeMode="stretch" style={[styles.sprite, { top, left }]} />
-      <EquipmentBadges equipment={equipment.slice(0, 3)} compact />
+    <View style={[styles.pixelWrap, { width: size, height: size }] }>
+      <Image source={guidePixelSprite} resizeMode="stretch" style={[styles.sprite, { top: cell.row ? '-100%' : '0%', left: cell.column ? '-100%' : '0%' }]} />
     </View>
   );
 }
+
+const guideCells: Record<BlessingId, { row: 0 | 1; column: 0 | 1 }> = {
+  amaterasu: { row: 0, column: 0 },
+  susanoo: { row: 0, column: 1 },
+  okuninushi: { row: 1, column: 0 },
+  inari: { row: 1, column: 1 },
+};
 
 function EquipmentBadges({ equipment, compact }: { equipment: EquipmentId[]; compact?: boolean }) {
   return (
@@ -69,7 +76,7 @@ const styles = StyleSheet.create({
   blessingBackdrop: { borderRadius: 28 },
   halo: { position: 'absolute', top: 34, width: 210, height: 210, borderRadius: 105, borderWidth: 3, opacity: .65, boxShadow: '0px 0px 30px rgba(255,180,94,.5)' },
   avatarImage: { width: '96%', height: '98%' },
-  pixelWrap: { overflow: 'hidden', borderRadius: 24, borderWidth: 2, borderColor: '#FFFFFF', boxShadow: glow.soft },
+  pixelWrap: { overflow: 'hidden' },
   sprite: { position: 'absolute', width: '200%', height: '200%' },
   badges: { position: 'absolute', right: 10, bottom: 10, flexDirection: 'row', gap: 5 },
   badgesCompact: { right: 5, bottom: 5, gap: 2 },

@@ -11,8 +11,7 @@ import { colors, fonts, glow } from '@/theme';
 const slides = [
   { title: '神さまって、\n意外と近くにいる。', body: 'KAMI MEGUは、神社との出会いと\nあなたの参拝を残す巡礼ノートです。', label: 'WELCOME TO KAMI MEGU', icon: 'sparkles' as const, image: require('../../assets/kami-megu-home-hero.png') },
   { title: '近くの神社へ\n会いにいこう', body: '地図から気になる神社を見つけて、\n新しいご縁を結びましょう。', label: 'FIND YOUR SHRINE', icon: 'map' as const, image: require('../../assets/blessing-amaterasu.png') },
-  { title: '参拝と御朱印を\nたいせつに記録', body: '写真や日付、感じたことを残して、\n自分だけの御朱印帳を育てます。', label: 'KEEP YOUR MEMORY', icon: 'book' as const, image: require('../../assets/blessing-okuninushi.png') },
-  { title: 'ご縁が、新しい\n神さまを導く', body: '参拝を重ねると図鑑や加護、\nアバターアイテムが少しずつ開きます。', label: 'BEGIN YOUR PILGRIMAGE', icon: 'heart' as const, image: require('../../assets/blessing-inari.png') },
+  { title: '参拝を記録して\n神話と出会おう', body: '写真や御朱印を一つの記録に残すと、\n神さまの図鑑が少しずつ開きます。', label: 'KEEP YOUR MEMORY', icon: 'book' as const, image: require('../../assets/blessing-okuninushi.png') },
 ];
 
 type TutorialContextValue = { replayTutorial: () => void };

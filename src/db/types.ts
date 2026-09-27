@@ -100,3 +100,24 @@ export type GoshuinEntry = {
   longitude: number | null;
   placeId: string | null;
 };
+
+// 御朱印の有無に関係なく、1回の参拝を表示するためのデータ
+export type VisitEntry = {
+  id: string;
+  visitedOn: string;
+  weather: string | null;
+  companions: string | null;
+  omikuji: string | null;
+  memo: string | null;
+  shrineId: string;
+  shrineName: string;
+  shrineKana: string | null;
+  shrineKind: PlaceKind;
+  prefecture: string | null;
+  address: string | null;
+  goshuinCount: number;
+  photoCount: number;
+  latestGoshuinId: string | null;
+  latestPhotoFile: string | null;
+  latestImageFile: string | null;
+};

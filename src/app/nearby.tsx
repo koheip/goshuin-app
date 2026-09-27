@@ -24,6 +24,7 @@ export default function NearbyScreen() {
   const [places, setPlaces] = useState<NearbyPlace[] | null>(null);
   const [linked, setLinked] = useState<Map<string, ShrineWithStats>>(new Map());
   const [loading, setLoading] = useState(placesSearchEnabled);
+  const [refreshing, setRefreshing] = useState(false);
   const [failure, setFailure] = useState<Failure | null>(null);
   const abort = useRef<AbortController | null>(null);
 
@@ -46,7 +47,10 @@ export default function NearbyScreen() {
         );
       })
       .finally(() => {
-        if (abort.current === controller) setLoading(false);
+        if (abort.current === controller) {
+          setLoading(false);
+          setRefreshing(false);
+        }
       });
   }, []);
 
@@ -55,6 +59,12 @@ export default function NearbyScreen() {
     setLoading(true);
     setFailure(null);
     run(meters);
+  }
+
+  function refresh() {
+    setRefreshing(true);
+    setFailure(null);
+    run(searchRadius);
   }
 
   useEffect(() => {
@@ -102,8 +112,8 @@ export default function NearbyScreen() {
       keyExtractor={(p) => p.placeId}
       contentContainerStyle={styles.list}
       ListHeaderComponent={header}
-      refreshing={loading && places !== null}
-      onRefresh={() => search(searchRadius)}
+      refreshing={refreshing}
+      onRefresh={refresh}
       ListEmptyComponent={
         failure?.kind === 'permission' ? (
           <Message

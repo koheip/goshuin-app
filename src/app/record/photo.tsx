@@ -139,8 +139,7 @@ export default function PhotoScreen() {
 
       <View style={[styles.bottomBar, { paddingBottom: Math.max(insets.bottom, 16) }]}>
         <Button
-          label="次へ：メモを入力"
-          disabled={draft.goshuin.length === 0}
+          label={draft.goshuin.length === 0 ? '御朱印なしで次へ' : `御朱印 ${draft.goshuin.length}枚を追加して次へ`}
           onPress={() => router.push('/record/memo')}
         />
       </View>

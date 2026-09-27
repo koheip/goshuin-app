@@ -11,6 +11,8 @@ expo-env.d.ts
 
 # Native
 .kotlin/
+/.gradle-cache/
+/.jdk17/
 *.orig.*
 *.jks
 *.p8
