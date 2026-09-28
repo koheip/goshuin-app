@@ -7,7 +7,7 @@ import { ImageBackground, Pressable, ScrollView, StyleSheet, Text, View } from '
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { PlaceMark } from '@/components/shrine';
-import { Sparkle } from '@/components/ui';
+import { BackButton, Sparkle } from '@/components/ui';
 import { listVisitedShrines, type ShrineCatalogEntry } from '@/db/repo';
 import { getLineage, lineageOf } from '@/lineage/catalog';
 import { KAMI_BACKGROUNDS } from '@/lineage/images';
@@ -43,7 +43,7 @@ export default function LineageScreen() {
     );
   }
 
-  const findNearby = () => router.navigate({ pathname: '/map', params: { q: lineage.searchQuery } });
+  const findShrines = () => router.navigate({ pathname: '/map', params: { q: lineage.searchQuery } });
 
   return (
     <View style={styles.screen}>
@@ -51,9 +51,7 @@ export default function LineageScreen() {
         <ImageBackground source={KAMI_BACKGROUNDS[lineage.kamiId]} resizeMode="cover" style={styles.hero}>
           <LinearGradient colors={['rgba(20,13,45,.08)', 'rgba(20,13,45,.25)', 'rgba(20,13,45,.92)']} locations={[0, 0.5, 1]} style={StyleSheet.absoluteFill} />
           <View style={[styles.heroTop, { paddingTop: Math.max(insets.top, 12) }]}>
-            <Pressable accessibilityRole="button" accessibilityLabel="戻る" hitSlop={10} onPress={() => router.back()} style={styles.roundButton}>
-              <Ionicons name="chevron-back" size={24} color="#FFFFFF" />
-            </Pressable>
+            <BackButton />
             <Text style={styles.kicker}>SHRINE LINEAGE</Text>
           </View>
           <View style={styles.heading}>
@@ -108,9 +106,9 @@ export default function LineageScreen() {
               <Text style={styles.paragraph}>
                 {lineage.name}に参拝すると、「{lineage.mythTitle}」の物語が読めるようになります。
               </Text>
-              <Pressable accessibilityRole="button" onPress={findNearby} style={({ pressed }) => [styles.lockedButton, pressed && styles.pressed]}>
+              <Pressable accessibilityRole="button" onPress={findShrines} style={({ pressed }) => [styles.lockedButton, pressed && styles.pressed]}>
                 <Ionicons name="search" size={16} color="#FFFFFF" />
-                <Text style={styles.lockedButtonText}>近くの{lineage.name}を探す</Text>
+                <Text style={styles.lockedButtonText}>{lineage.name}を探す</Text>
               </Pressable>
             </View>
           )}
@@ -139,8 +137,8 @@ export default function LineageScreen() {
               ))}
             </View>
           ) : visited && (
-            <Pressable accessibilityRole="button" onPress={findNearby} style={({ pressed }) => [styles.search, pressed && styles.pressed]}>
-              <Text style={styles.searchText}>まだ参拝していません。近くの{lineage.name}を探してみましょう</Text>
+            <Pressable accessibilityRole="button" onPress={findShrines} style={({ pressed }) => [styles.search, pressed && styles.pressed]}>
+              <Text style={styles.searchText}>まだ参拝していません。{lineage.name}を探してみましょう</Text>
               <Ionicons name="arrow-forward" size={16} color={colors.accent} />
             </Pressable>
           )}
@@ -205,16 +203,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-  },
-  roundButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(23,15,52,.44)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,.55)',
   },
   kicker: {
     fontFamily: fonts.bold,

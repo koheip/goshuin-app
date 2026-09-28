@@ -13,6 +13,7 @@ import { useCallback, useEffect, useState } from 'react';
 
 import { KamiLoadingScreen } from '@/components/KamiLoadingScreen';
 import { TutorialProvider } from '@/components/TutorialProvider';
+import { HeaderBackButton } from '@/components/ui';
 import { migrateDbIfNeeded } from '@/db/migrate';
 import { colors, fonts } from '@/theme';
 
@@ -48,6 +49,7 @@ export default function RootLayout() {
           headerShadowVisible: false,
           contentStyle: { backgroundColor: colors.paper },
           headerBackButtonDisplayMode: 'minimal',
+          headerLeft: ({ canGoBack }) => (canGoBack ? <HeaderBackButton /> : null),
         }}
       >
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />

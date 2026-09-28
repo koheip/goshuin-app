@@ -2,6 +2,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, Stack } from 'expo-router';
 import { Pressable } from 'react-native';
 
+import { HeaderBackButton } from '@/components/ui';
 import { DraftProvider } from '@/record/draft';
 import { colors, fonts } from '@/theme';
 
@@ -17,6 +18,7 @@ export default function RecordLayout() {
           headerTitleAlign: 'center',
           headerShadowVisible: false,
           headerBackButtonDisplayMode: 'minimal',
+          headerLeft: ({ canGoBack }) => (canGoBack ? <HeaderBackButton /> : null),
           contentStyle: { backgroundColor: colors.paper },
         }}
       >

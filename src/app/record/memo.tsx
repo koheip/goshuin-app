@@ -19,10 +19,11 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button, Chip, ChipGroup, Field, FieldLabel, Stepper } from '@/components/ui';
-import { getAvatarPreferences, getCurrentBook, getJourneyStats, saveVisit } from '@/db/repo';
+import { getAvatarPreferences, getCurrentBook, getJourneyStats, getShrine, listVisitedShrines, saveVisit } from '@/db/repo';
 import { FEE_LABEL, GOSHUIN_KIND_LABEL, type GoshuinKind, WEATHER_OPTIONS } from '@/db/types';
 import { formatJa, isValidIsoDate, shiftDays, today } from '@/lib/dates';
 import { deleteImage, PermissionDeniedError, persistImage, pickGoshuinImage, type PickSource } from '@/lib/images';
+import { lineageOf } from '@/lineage/catalog';
 import { useDraft } from '@/record/draft';
 import { colors, fonts, glow, radius } from '@/theme';
 
@@ -85,7 +86,15 @@ export default function MemoScreen() {
     setSaving(true);
     const savedFiles: string[] = [];
     try {
-      const before = await getJourneyStats(db);
+      const [before, shrine, visitedBefore] = await Promise.all([
+        getJourneyStats(db),
+        getShrine(db, draft.shrine.id),
+        listVisitedShrines(db),
+      ]);
+      const lineage = shrine ? lineageOf(shrine) : undefined;
+      const mythUnlocked = lineage && !visitedBefore.some((visited) => lineageOf(visited)?.id === lineage.id)
+        ? lineage.id
+        : '';
       const goshuin = draft.goshuin.map((g) => {
         const imageFile = persistImage(g.tempUri);
         savedFiles.push(imageFile);
@@ -120,6 +129,7 @@ export default function MemoScreen() {
           visits: String(after.visitCount),
           firstVisit: String(after.shrineCount > before.shrineCount),
           unlockedAt: unlockedAt ? String(unlockedAt) : '',
+          mythUnlocked,
         },
       });
     } catch (e) {

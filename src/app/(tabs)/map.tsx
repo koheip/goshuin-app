@@ -18,7 +18,7 @@ export default function MapScreen() {
         top={
           <View style={styles.title}>
             <ScreenTitle>神社を探す</ScreenTitle>
-            <Text style={styles.sub}>近くの神社・お寺から、新しいご縁を見つけよう</Text>
+            <Text style={styles.sub}>名前や近くの場所から、新しいご縁を見つけよう</Text>
           </View>
         }
       />

@@ -11,6 +11,8 @@ import {
   type ViewStyle,
 } from 'react-native';
 
+import Ionicons from '@expo/vector-icons/Ionicons';
+import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 
 import { Sakura } from '@/components/shrine';
@@ -161,6 +163,26 @@ export function Stepper({ current }: { current: 1 | 2 }) {
   );
 }
 
+// 白い丸の戻るボタン
+export function BackButton({ onPress = () => router.back(), label = '戻る', style }: { onPress?: () => void; label?: string; style?: ViewStyle }) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      hitSlop={8}
+      onPress={onPress}
+      style={({ pressed }) => [styles.backButton, style, pressed && { opacity: 0.7 }]}
+    >
+      <Ionicons name="chevron-back" size={22} color={colors.ink} />
+    </Pressable>
+  );
+}
+
+// 標準の矢印の代わりに使う、ヘッダーの戻るボタン
+export function HeaderBackButton() {
+  return <BackButton style={styles.headerBack} />;
+}
+
 export function ScreenTitle({ children }: { children: string }) {
   return <Text style={styles.screenTitle}>{children}</Text>;
 }
@@ -198,6 +220,17 @@ export function DreamyBackground() {
 }
 
 const styles = StyleSheet.create({
+  headerBack: { marginRight: 8 },
+  backButton: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,.8)',
+    borderWidth: 1,
+    borderColor: colors.line,
+  },
   glassCard: {
     padding: 16,
     borderRadius: radius.lg,

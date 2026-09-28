@@ -12,15 +12,15 @@ export const GUIDE_ILLUSTRATIONS: Record<BlessingId, number> = {
 // 神さまごとの装束・象徴物・背景で個性を描き分ける。
 export const KAMI_CATALOG_ILLUSTRATIONS: Record<BlessingId, number> = {
   amaterasu: require('../../assets/kami-catalog-amaterasu-card-v5.png'),
-  susanoo: require('../../assets/kami-catalog-susanoo-card-v4.png'),
-  okuninushi: require('../../assets/kami-catalog-okuninushi-card-v4.png'),
-  inari: require('../../assets/kami-catalog-inari-card-v4.png'),
+  susanoo: require('../../assets/kami-catalog-susanoo-card-v5.png'),
+  okuninushi: require('../../assets/kami-catalog-okuninushi-card-v5.png'),
+  inari: require('../../assets/kami-catalog-inari-card-v5.png'),
 };
 
 // 一覧の額に余白なく収まる、正方形の正面バストアップ。
 export const KAMI_CATALOG_CARD_ILLUSTRATIONS: Record<BlessingId, number> = {
   amaterasu: require('../../assets/kami-catalog-amaterasu-card-v5.png'),
-  susanoo: require('../../assets/kami-catalog-susanoo-card-v4.png'),
-  okuninushi: require('../../assets/kami-catalog-okuninushi-card-v4.png'),
-  inari: require('../../assets/kami-catalog-inari-card-v4.png'),
+  susanoo: require('../../assets/kami-catalog-susanoo-card-v5.png'),
+  okuninushi: require('../../assets/kami-catalog-okuninushi-card-v5.png'),
+  inari: require('../../assets/kami-catalog-inari-card-v5.png'),
 };

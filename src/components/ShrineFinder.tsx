@@ -21,13 +21,14 @@ type Failure = { kind: 'permission' } | { kind: 'error'; message: string };
 type FoundPlace = PlaceCandidate & Partial<NearbyPlace>;
 
 // 近くの神社・お寺を探し、名前でも探せる一覧。top は一覧の先頭に置く見出し。
-// initialQuery を渡すと、開いたときにその名前で探す（神社図鑑の「〇〇を探す」から）
+// initialQuery を渡すと、開いたときに現在地を使わず、その名前だけで探す（神社図鑑の「〇〇を探す」から）
 export function ShrineFinder({ top, initialQuery }: { top?: ReactElement; initialQuery?: string }) {
   const db = useSQLiteContext();
   const [searchRadius, setSearchRadius] = useState<number>(DEFAULT_RADIUS);
   const [places, setPlaces] = useState<NearbyPlace[] | null>(null);
   const [linked, setLinked] = useState<Map<string, ShrineWithStats>>(new Map());
-  const [loading, setLoading] = useState(placesSearchEnabled);
+  // 名前を受け取ったときは名前だけで探し、近くの一覧は検索を閉じたときに読み込む
+  const [loading, setLoading] = useState(placesSearchEnabled && !initialQuery);
   const [refreshing, setRefreshing] = useState(false);
   const [failure, setFailure] = useState<Failure | null>(null);
   const abort = useRef<AbortController | null>(null);
@@ -78,13 +79,12 @@ export function ShrineFinder({ top, initialQuery }: { top?: ReactElement; initia
     run(searchRadius);
   }
 
-  // 名前で探す。現在地がわかれば、その近くの場所を優先する
-  const runText = useCallback((q: string) => {
+  // 名前で探す。nearby のときは、現在地がわかればその近くの場所を優先する
+  const runText = useCallback((q: string, nearby: boolean) => {
     textAbort.current?.abort();
     const controller = new AbortController();
     textAbort.current = controller;
-    getCurrentCoords()
-      .catch(() => undefined)
+    (nearby ? getCurrentCoords().catch(() => undefined) : Promise.resolve(undefined))
       .then((near) => searchPlaces(q, controller.signal, near))
       .then((found) => {
         if (!controller.signal.aborted) setResults(found);
@@ -102,7 +102,7 @@ export function ShrineFinder({ top, initialQuery }: { top?: ReactElement; initia
     if (!q) return;
     setSearching(true);
     setSearchError(null);
-    runText(q);
+    runText(q, true);
   }
 
   function clearSearch() {
@@ -111,12 +111,13 @@ export function ShrineFinder({ top, initialQuery }: { top?: ReactElement; initia
     setResults(null);
     setSearching(false);
     setSearchError(null);
+    if (places === null && !loading && !failure) search(searchRadius);
   }
 
   useEffect(() => {
     if (placesSearchEnabled) {
-      run(DEFAULT_RADIUS);
-      if (initialQuery) runText(initialQuery);
+      if (initialQuery) runText(initialQuery, false);
+      else run(DEFAULT_RADIUS);
     }
     return () => {
       abort.current?.abort();

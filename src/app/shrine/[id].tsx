@@ -7,6 +7,7 @@ import { Alert, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'rea
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { PlaceMark } from '@/components/shrine';
+import { BackButton } from '@/components/ui';
 import { getShrineCatalogEntry, listShrineVisits, type ShrineCatalogEntry } from '@/db/repo';
 import { PLACE_KIND_LABEL, type VisitEntry } from '@/db/types';
 import { lineageOf } from '@/lineage/catalog';
@@ -38,17 +39,7 @@ export default function ShrineDetailScreen() {
     }, [db, id]),
   );
 
-  const back = (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel="戻る"
-      hitSlop={10}
-      onPress={() => router.back()}
-      style={styles.roundButton}
-    >
-      <Ionicons name="chevron-back" size={24} color="#FFFFFF" />
-    </Pressable>
-  );
+  const back = <BackButton />;
 
   if (shrine === undefined) return <View style={styles.screen} />;
   if (shrine === null) {
@@ -237,16 +228,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-  },
-  roundButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(23,15,52,.44)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,.55)',
   },
   editButton: {
     minHeight: 40,
