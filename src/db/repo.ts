@@ -67,6 +67,25 @@ export async function setTutorialComplete(db: SQLiteDatabase, complete: boolean)
   );
 }
 
+// 参拝を記録したときの効果音。まだ設定していなければ鳴らす
+export async function isSoundEnabled(db: SQLiteDatabase): Promise<boolean> {
+  const row = await db.getFirstAsync<{ value: string }>(
+    'SELECT value FROM app_settings WHERE key = ?',
+    'sound_enabled',
+  );
+  return row?.value !== '0';
+}
+
+export async function setSoundEnabled(db: SQLiteDatabase, enabled: boolean): Promise<void> {
+  await db.runAsync(
+    `INSERT INTO app_settings (key, value, updated_at) VALUES (?, ?, ?)
+     ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at`,
+    'sound_enabled',
+    enabled ? '1' : '0',
+    new Date().toISOString(),
+  );
+}
+
 export type ReminderPreferences = {
   enabled: boolean;
   weekday: number;

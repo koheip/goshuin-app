@@ -2,6 +2,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { useAudioPlayer } from 'expo-audio';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, useLocalSearchParams } from 'expo-router';
+import { useSQLiteContext } from 'expo-sqlite';
 import { useEffect, useState } from 'react';
 import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -10,6 +11,7 @@ import { BLESSINGS, type BlessingId } from '@/avatar/catalog';
 import { PixelAvatar } from '@/components/AvatarPreview';
 import { Sakura, Torii } from '@/components/shrine';
 import { Sparkle } from '@/components/ui';
+import { isSoundEnabled } from '@/db/repo';
 import { colors, fonts, glow, gradients } from '@/theme';
 
 const praise: Record<BlessingId, string> = {
@@ -34,11 +36,18 @@ export default function RecordSuccessScreen() {
   const [opacity] = useState(() => new Animated.Value(0));
   const [float] = useState(() => new Animated.Value(0));
   const specialUnlock = params.unlockedAt ? unlockedNames[params.unlockedAt] : undefined;
+  const db = useSQLiteContext();
   const chime = useAudioPlayer(require('../../../assets/sounds/visit-complete-wafuu.wav'));
 
   useEffect(() => {
-    chime.seekTo(0).then(() => chime.play()).catch(() => {});
-  }, [chime]);
+    isSoundEnabled(db)
+      .then(async (enabled) => {
+        if (!enabled) return;
+        await chime.seekTo(0);
+        chime.play();
+      })
+      .catch(() => {});
+  }, [chime, db]);
 
   useEffect(() => {
     Animated.parallel([

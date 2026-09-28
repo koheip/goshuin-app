@@ -16,6 +16,7 @@ import {
   getShrine,
   getShrineCatalogEntry,
   getVisit,
+  isSoundEnabled,
   listBookEntries,
   listBooks,
   listShrineVisits,
@@ -28,6 +29,7 @@ import {
   saveAvatarPreferences,
   saveReminderPreferences,
   setShrineLocation,
+  setSoundEnabled,
   startNewBook,
   updateEntry,
   updateShrine,
@@ -86,6 +88,14 @@ describe('migrateDbIfNeeded', () => {
     expect(await getReminderPreferences(db)).toEqual({ enabled: false, weekday: 7, hour: 9, minute: 0, notificationId: null });
     await saveReminderPreferences(db, { enabled: true, weekday: 2, hour: 8, minute: 30, notificationId: 'reminder-1' });
     expect(await getReminderPreferences(db)).toEqual({ enabled: true, weekday: 2, hour: 8, minute: 30, notificationId: 'reminder-1' });
+  });
+
+  it('効果音は初めは鳴らし、OFFにすると保存される', async () => {
+    expect(await isSoundEnabled(db)).toBe(true);
+    await setSoundEnabled(db, false);
+    expect(await isSoundEnabled(db)).toBe(false);
+    await setSoundEnabled(db, true);
+    expect(await isSoundEnabled(db)).toBe(true);
   });
 
   it('版1のデータは、参拝日の古い順に帳の並び順を振り直す', async () => {

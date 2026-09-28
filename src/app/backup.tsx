@@ -70,7 +70,7 @@ export default function BackupScreen() {
       <View style={styles.card}>
         <Text style={styles.title}>書き出す</Text>
         <Text style={styles.body}>
-          記録と写真をまとめて1つのファイルにします。「ファイル」アプリやクラウドドライブ、パソコンなどに保存しておくと、機種変更やアプリを消したあとでも戻せます。
+          記録と写真、おともの着せ替えをまとめて1つのファイルにします（参拝リマインダーの設定は端末ごとなので入りません）。「ファイル」アプリやクラウドドライブ、パソコンなどに保存しておくと、機種変更やアプリを消したあとでも戻せます。
         </Text>
         <Button
           label="バックアップを書き出す"

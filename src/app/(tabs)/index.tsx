@@ -2,7 +2,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, useFocusEffect } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
-import { useCallback, useState } from 'react';
+import { useCallback, useState, type ReactNode } from 'react';
 import { Image, ImageBackground, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -11,7 +11,7 @@ import { GUIDE_ILLUSTRATIONS } from '@/avatar/images';
 import { PixelAvatar } from '@/components/AvatarPreview';
 import { PlaceMark, Sakura, Torii } from '@/components/shrine';
 import { GlassCard, PixelWordmark, Sparkle } from '@/components/ui';
-import { getAvatarPreferences, listVisitEntries } from '@/db/repo';
+import { getAvatarPreferences, getReminderPreferences, listVisitEntries } from '@/db/repo';
 import type { VisitEntry } from '@/db/types';
 import { formatDot } from '@/lib/dates';
 import { imageUri } from '@/lib/images';
@@ -21,14 +21,16 @@ export default function HomeScreen() {
   const db = useSQLiteContext();
   const [latest, setLatest] = useState<VisitEntry | null | undefined>(undefined);
   const [guideId, setGuideId] = useState<BlessingId>('amaterasu');
+  const [reminderOn, setReminderOn] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
       let active = true;
       (async () => {
-        const [entries, preferences] = await Promise.all([listVisitEntries(db), getAvatarPreferences(db)]);
+        const [entries, preferences, reminder] = await Promise.all([listVisitEntries(db), getAvatarPreferences(db), getReminderPreferences(db)]);
         if (!active) return;
         setLatest(entries[0] ?? null);
+        setReminderOn(reminder.enabled);
         if (BLESSINGS.some((item) => item.id === preferences.blessing)) setGuideId(preferences.blessing as BlessingId);
       })();
       return () => { active = false; };
@@ -46,9 +48,13 @@ export default function HomeScreen() {
                 <PixelWordmark />
                 <Text style={styles.kana}>カ ミ め ぐ</Text>
               </View>
-              <Pressable accessibilityRole="button" accessibilityLabel="参拝リマインダー" onPress={() => router.push('/reminder')} style={({ pressed }) => [styles.roundButton, pressed && styles.pressed]}>
-                <Ionicons name="notifications-outline" size={21} color={colors.ink} />
-              </Pressable>
+              <View style={styles.topActions}>
+                <RingButton label={`参拝リマインダー（${reminderOn ? 'オン' : 'オフ'}）`} icon={reminderOn ? 'notifications' : 'notifications-outline'} onPress={() => router.push('/reminder')}>
+                  <Sparkle size={11} color={colors.violet} style={styles.ringSparkle} />
+                  {reminderOn && <View style={styles.ringDot} />}
+                </RingButton>
+                <RingButton label="設定" icon="settings-outline" onPress={() => router.push('/settings')} />
+              </View>
             </View>
 
             <View style={styles.copyBlock}>
@@ -124,12 +130,31 @@ export default function HomeScreen() {
   );
 }
 
+// ホーム右上の丸いボタン。グラデーションの輪で囲む
+function RingButton({ label, icon, onPress, children }: { label: string; icon: keyof typeof Ionicons.glyphMap; onPress: () => void; children?: ReactNode }) {
+  return (
+    <Pressable accessibilityRole="button" accessibilityLabel={label} onPress={onPress} style={({ pressed }) => [styles.ringButton, pressed && styles.pressed]}>
+      <LinearGradient colors={gradients.primary} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.ring}>
+        <View style={styles.ringInner}>
+          <Ionicons name={icon} size={20} color={colors.accent} />
+        </View>
+      </LinearGradient>
+      {children}
+    </Pressable>
+  );
+}
+
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.paper }, hero: { flex: 1 }, heroImage: { opacity: 0.98 }, safe: { flex: 1 },
   content: { flexGrow: 1, paddingHorizontal: spacing.lg, paddingBottom: spacing.lg },
   topbar: { paddingTop: 8, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
   kana: { marginTop: -1, marginLeft: 3, color: colors.accent, fontFamily: fonts.bold, fontSize: 10, letterSpacing: 3 },
-  roundButton: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.88)', borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.9)', alignItems: 'center', justifyContent: 'center', boxShadow: glow.soft },
+  topActions: { flexDirection: 'row', gap: 10 },
+  ringButton: { width: 46, height: 46, borderRadius: 23, boxShadow: glow.pink },
+  ring: { flex: 1, borderRadius: 23, padding: 2 },
+  ringInner: { flex: 1, borderRadius: 21, backgroundColor: 'rgba(255,255,255,0.94)', alignItems: 'center', justifyContent: 'center' },
+  ringSparkle: { position: 'absolute', left: -7, top: -4 },
+  ringDot: { position: 'absolute', right: 1, top: 1, width: 11, height: 11, borderRadius: 6, backgroundColor: colors.accent, borderWidth: 2, borderColor: '#FFFFFF' },
   pressed: { opacity: 0.76, transform: [{ scale: 0.98 }] },
   copyBlock: { marginTop: 38, alignSelf: 'flex-start', position: 'relative', paddingLeft: 14 },
   copyAccent: { position: 'absolute', left: 0, top: 3, bottom: 3, width: 4, borderRadius: 2, backgroundColor: colors.accent },
