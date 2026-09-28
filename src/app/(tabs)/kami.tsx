@@ -231,7 +231,7 @@ const styles = StyleSheet.create({
   grid: { paddingHorizontal: 16, paddingBottom: 28, gap: 12 }, row: { gap: 12 },
   card: { flex: 1, overflow: 'hidden', borderRadius: radius.md, backgroundColor: 'rgba(255,255,255,.86)', borderWidth: 1, borderColor: colors.line, boxShadow: glow.soft }, pressed: { transform: [{ scale: .98 }], opacity: .85 },
   portrait: { width: '100%', aspectRatio: 1, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', backgroundColor: '#F9EEFF' },
-  catalogPortraitImage: { width: '100%', height: '100%' },
+  catalogPortraitImage: { width: '100%', height: '100%', transform: [{ scale: 1.18 }] },
   lock: { position: 'absolute', top: 56, alignSelf: 'center', width: 46, height: 46, borderRadius: 23, backgroundColor: 'rgba(90,66,127,.72)', alignItems: 'center', justifyContent: 'center' },
   cardBody: { padding: 11, gap: 3 }, name: { fontFamily: fonts.display, fontSize: 15, color: colors.ink }, muted: { color: colors.muted },
   reading: { minHeight: 17, fontFamily: fonts.regular, fontSize: 10, color: colors.muted }, blessing: { fontFamily: fonts.bold, fontSize: 10, color: colors.accentOnTint },
