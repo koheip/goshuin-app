@@ -48,12 +48,12 @@ export default function AvatarScreen() {
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.topbar}>
           <Pressable accessibilityRole="button" accessibilityLabel="図鑑へ戻る" onPress={() => router.back()} style={styles.back}><Ionicons name="chevron-back" size={23} color={colors.ink} /></Pressable>
-          <Text style={styles.topTitle}>案内役を選ぶ</Text><View style={styles.back} />
+          <Text style={styles.topTitle}>おともを選ぶ</Text><View style={styles.back} />
         </View>
         <View style={styles.hero}>
           <Text style={styles.kicker}>YOUR KAMI GUIDE</Text>
           <View style={styles.titleRow}><Text style={styles.title}>{guide.invocation}</Text><Sparkle size={18} /></View>
-          <Text style={styles.subtitle}>獲得した神さまから、旅の案内役をひとり選べます。</Text>
+          <Text style={styles.subtitle}>獲得した神さまから、旅のおともをひとり選べます。</Text>
           <PixelAvatar blessing={guide} equipment={[]} size={154} />
           <Text style={styles.deity}>{guide.deity}</Text>
         </View>
@@ -69,7 +69,7 @@ export default function AvatarScreen() {
           })}
         </View>
         <Pressable accessibilityRole="button" disabled={saving} onPress={save} style={({ pressed }) => [styles.save, pressed && styles.pressed]}>
-          <LinearGradient colors={gradients.primary} style={StyleSheet.absoluteFill} /><Ionicons name="sparkles" size={18} color="#FFFFFF" /><Text style={styles.saveText}>{saving ? '保存中…' : 'この神さまに案内してもらう'}</Text>
+          <LinearGradient colors={gradients.primary} style={StyleSheet.absoluteFill} /><Ionicons name="sparkles" size={18} color="#FFFFFF" /><Text style={styles.saveText}>{saving ? '保存中…' : 'この神さまと一緒にめぐる'}</Text>
         </Pressable>
         <Text style={styles.note}>装備管理は表から外し、参拝で出会った神さまを選ぶ仕組みに整理しました。</Text>
       </ScrollView>
@@ -81,7 +81,7 @@ export default function AvatarScreen() {
             <View style={[styles.orbit, styles.orbitOne, { borderColor: guide.color }]} />
             <View style={[styles.orbit, styles.orbitTwo, { borderColor: guide.color }]} />
             <Text style={styles.confirmKicker}>KAMI GUIDE CONNECTED</Text>
-            <View style={styles.confirmTitleRow}><Sparkle size={15} color={guide.color} /><Text style={styles.confirmTitle}>案内役を選びました</Text><Sparkle size={15} color={guide.color} /></View>
+            <View style={styles.confirmTitleRow}><Sparkle size={15} color={guide.color} /><Text style={styles.confirmTitle}>おともを選びました</Text><Sparkle size={15} color={guide.color} /></View>
             <View style={[styles.guideStage, { backgroundColor: `${guide.color}18` }]}>
               <View style={[styles.pixelGlow, { backgroundColor: guide.color }]} />
               <PixelAvatar blessing={guide} equipment={[]} size={176} />

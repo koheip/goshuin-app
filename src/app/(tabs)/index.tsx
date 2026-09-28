@@ -7,6 +7,7 @@ import { Image, ImageBackground, Pressable, ScrollView, StyleSheet, Text, View }
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BLESSINGS, type BlessingId } from '@/avatar/catalog';
+import { GUIDE_ILLUSTRATIONS } from '@/avatar/images';
 import { PixelAvatar } from '@/components/AvatarPreview';
 import { PlaceMark, Sakura, Torii } from '@/components/shrine';
 import { GlassCard, PixelWordmark, Sparkle } from '@/components/ui';
@@ -15,13 +16,6 @@ import type { VisitEntry } from '@/db/types';
 import { formatDot } from '@/lib/dates';
 import { imageUri } from '@/lib/images';
 import { colors, fonts, glow, gradients, spacing } from '@/theme';
-
-const guideWallpapers: Record<BlessingId, number> = {
-  amaterasu: require('../../../assets/kami-megu-home-hero.png'),
-  susanoo: require('../../../assets/home-guide-susanoo-soft-v3.png'),
-  okuninushi: require('../../../assets/home-guide-okuninushi-soft-v3.png'),
-  inari: require('../../../assets/home-guide-inari-soft-v3.png'),
-};
 
 export default function HomeScreen() {
   const db = useSQLiteContext();
@@ -43,7 +37,7 @@ export default function HomeScreen() {
 
   return (
     <View style={styles.screen}>
-      <ImageBackground source={guideWallpapers[guideId]} resizeMode="cover" style={styles.hero} imageStyle={styles.heroImage}>
+      <ImageBackground source={GUIDE_ILLUSTRATIONS[guideId]} resizeMode="cover" style={styles.hero} imageStyle={styles.heroImage}>
         <LinearGradient colors={['rgba(255,244,252,0.08)', 'rgba(255,237,249,0.12)', 'rgba(255,247,252,0.94)']} locations={[0, 0.55, 1]} style={StyleSheet.absoluteFill} />
         <SafeAreaView edges={['top']} style={styles.safe}>
           <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content} bounces={false}>
@@ -64,9 +58,9 @@ export default function HomeScreen() {
             </View>
 
             <View style={styles.spacer}>
-              <Pressable accessibilityRole="button" accessibilityLabel="案内役を変更する" onPress={() => router.push('/avatar')} style={({ pressed }) => [styles.homeGuide, pressed && styles.pressed]}>
+              <Pressable accessibilityRole="button" accessibilityLabel="おともを変更する" onPress={() => router.push('/avatar')} style={({ pressed }) => [styles.homeGuide, pressed && styles.pressed]}>
                 <PixelAvatar blessing={BLESSINGS.find((item) => item.id === guideId) ?? BLESSINGS[0]} equipment={[]} size={126} />
-                <View style={styles.guideLabel}><Text style={styles.guideLabelText}>案内役</Text><Ionicons name="chevron-forward" size={12} color="#FFFFFF" /></View>
+                <View style={styles.guideLabel}><Text style={styles.guideLabelText}>おとも</Text><Ionicons name="chevron-forward" size={12} color="#FFFFFF" /></View>
               </Pressable>
             </View>
 
