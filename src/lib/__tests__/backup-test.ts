@@ -13,7 +13,7 @@ import {
 } from '@/db/repo';
 import { createTestDb } from '@/testing/testDb';
 
-import { exportBackup, restoreBackup } from '../backup';
+import { BackupFormatError, exportBackup, restoreBackup } from '../backup';
 
 jest.mock('expo-crypto', () => ({ randomUUID: () => jest.requireActual('crypto').randomUUID() }));
 
@@ -102,5 +102,16 @@ describe('バックアップ', () => {
 
     expect(await getAvatarPreferences(target)).toEqual({ blessing: 'okuninushi', equipment: ['omamori'] });
     expect(await isTutorialComplete(target)).toBe(true);
+  });
+
+  test.each(['goshuin', 'visit_photos'])('%s の写真のファイル名が写真フォルダの外を指すファイルは戻さない', async (table) => {
+    const source = await freshDb();
+    const file = await exportBackup(source);
+    const backup = JSON.parse(await file.text());
+    backup.tables[table].push({ id: 'evil', image_file: '../SQLite/goshuin.db' });
+    file.write(JSON.stringify(backup));
+
+    const target = await freshDb();
+    await expect(restoreBackup(target, file.uri)).rejects.toThrow(BackupFormatError);
   });
 });

@@ -3,7 +3,7 @@ import { Directory, File, Paths } from 'expo-file-system';
 
 import { renumberGoshuinPositions } from '@/db/migrate';
 
-import { imageDir } from './images';
+import { imageDir, isImageFileName } from './images';
 
 // バックアップは1つの JSON ファイル。DBの行をそのまま持ち、写真は base64 で埋め込む
 const FORMAT = 'goshuin-app-backup';
@@ -53,8 +53,6 @@ const SETTINGS_TABLES: SettingsTable[] = ['avatar_preferences', 'app_settings'];
 // リマインダーの通知IDはその端末でしか使えず、上書きすると予約中の通知を止められなくなる
 const DEVICE_SETTINGS = ['visit_reminder'];
 const isDeviceSetting = (row: Row) => DEVICE_SETTINGS.includes(String(row.key));
-
-const IMAGE_NAME = /^[0-9a-f-]+\.jpg$/i;
 
 export class BackupFormatError extends Error {}
 
@@ -121,10 +119,12 @@ function parseBackup(text: string): Backup {
     if (rows !== undefined && !Array.isArray(rows)) throw new BackupFormatError('バックアップの中身が壊れています');
   }
   if (b.tables.books.length === 0) throw new BackupFormatError('バックアップに御朱印帳がありません');
-  for (const fileName of Object.keys(b.images)) {
-    // 写真フォルダの外へ書き出されないよう、ファイル名の形を確かめる
-    if (!IMAGE_NAME.test(fileName)) throw new BackupFormatError('バックアップの中身が壊れています');
-  }
+  // 写真フォルダの外へ書き出したり、記録を消すときに外のファイルを消したりしないよう、ファイル名の形を確かめる
+  const imageFiles = [
+    ...Object.keys(b.images),
+    ...[...b.tables.goshuin, ...b.tables.visit_photos].map((row) => row.image_file),
+  ];
+  if (!imageFiles.every(isImageFileName)) throw new BackupFormatError('バックアップの中身が壊れています');
   return b as Backup;
 }
 

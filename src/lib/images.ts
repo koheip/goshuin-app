@@ -6,6 +6,12 @@ import { randomUUID } from 'expo-crypto';
 const MAX_EDGE = 1600;
 const JPEG_QUALITY = 0.7;
 const DIR_NAME = 'goshuin';
+const IMAGE_NAME = /^[0-9a-f-]+\.jpg$/i;
+
+// 写真フォルダの外を指さないよう、保存する写真と同じ形（UUID.jpg）のファイル名か確かめる
+export function isImageFileName(fileName: unknown): fileName is string {
+  return typeof fileName === 'string' && IMAGE_NAME.test(fileName);
+}
 
 export function imageDir(): Directory {
   const dir = new Directory(Paths.document, DIR_NAME);
@@ -63,6 +69,7 @@ export function persistImage(tempUri: string): string {
 }
 
 export function deleteImage(fileName: string) {
+  if (!isImageFileName(fileName)) return;
   const file = new File(Paths.document, DIR_NAME, fileName);
   if (file.exists) file.delete();
 }
