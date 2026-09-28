@@ -1,7 +1,7 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 import { randomUUID } from 'expo-crypto';
 
-const LATEST_VERSION = 7;
+const LATEST_VERSION = 8;
 
 // PRAGMA user_version でスキーマの版を管理し、足りない分だけ順に適用する
 export async function migrateDbIfNeeded(db: SQLiteDatabase) {
@@ -136,6 +136,15 @@ export async function migrateDbIfNeeded(db: SQLiteDatabase) {
       await db.execAsync('ALTER TABLE shrines ADD COLUMN lineage TEXT');
     }
     version = 7;
+  }
+
+  if (version < 8) {
+    // お気に入りにした日時。null はお気に入りでない
+    const columns = await db.getAllAsync<{ name: string }>('PRAGMA table_info(shrines)');
+    if (!columns.some((c) => c.name === 'favorited_at')) {
+      await db.execAsync('ALTER TABLE shrines ADD COLUMN favorited_at TEXT');
+    }
+    version = 8;
   }
 
   await db.execAsync(`PRAGMA user_version = ${version}`);

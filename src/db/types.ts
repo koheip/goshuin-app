@@ -36,6 +36,8 @@ export type Shrine = {
   kind: PlaceKind;
   // 系統（lineage/catalog.ts の id）。null は名前から自動で判断、'none' はどの系統でもない
   lineage: string | null;
+  // お気に入りにした日時。null はお気に入りでない
+  favoritedAt: string | null;
   createdAt: string;
   updatedAt: string;
 };

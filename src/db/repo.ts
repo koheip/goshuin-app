@@ -133,10 +133,10 @@ export async function getJourneyStats(db: SQLiteDatabase): Promise<JourneyStats>
 
 const SHRINE_COLUMNS = `
   s.id, s.name, s.kana, s.prefecture, s.address, s.latitude, s.longitude,
-  s.place_id AS placeId, s.kind, s.lineage, s.created_at AS createdAt, s.updated_at AS updatedAt
+  s.place_id AS placeId, s.kind, s.lineage, s.favorited_at AS favoritedAt, s.created_at AS createdAt, s.updated_at AS updatedAt
 `;
 
-// 登録済みの神社を名前・読みで検索する。最近参拝した順に並べる
+// 登録済みの神社を名前・読みで検索する。お気に入りを先に、その中はよく参拝する順（同じ回数なら最近参拝した順）に並べる
 export async function searchShrines(db: SQLiteDatabase, query: string): Promise<ShrineWithStats[]> {
   const q = query.trim();
   const like = `%${q.replace(/[\\%_]/g, (c) => `\\${c}`)}%`;
@@ -148,7 +148,7 @@ export async function searchShrines(db: SQLiteDatabase, query: string): Promise<
      LEFT JOIN visits v ON v.shrine_id = s.id
      WHERE ? = '' OR s.name LIKE ? ESCAPE '\\' OR s.kana LIKE ? ESCAPE '\\'
      GROUP BY s.id
-     ORDER BY lastVisitedOn IS NULL, lastVisitedOn DESC, s.created_at DESC`,
+     ORDER BY s.favorited_at IS NULL, visitCount DESC, lastVisitedOn IS NULL, lastVisitedOn DESC, s.created_at DESC`,
     q,
     like,
     like,
@@ -225,6 +225,7 @@ export async function createShrine(
     placeId: input.placeId ?? null,
     kind: input.kind ?? 'shrine',
     lineage: null,
+    favoritedAt: null,
     createdAt: now,
     updatedAt: now,
   };
@@ -624,6 +625,16 @@ export async function updateShrine(db: SQLiteDatabase, shrineId: string, input: 
     input.kind,
     input.lineage,
     new Date().toISOString(),
+    shrineId,
+  );
+}
+
+export async function setShrineFavorite(db: SQLiteDatabase, shrineId: string, favorite: boolean): Promise<void> {
+  const now = new Date().toISOString();
+  await db.runAsync(
+    'UPDATE shrines SET favorited_at = ?, updated_at = ? WHERE id = ?',
+    favorite ? now : null,
+    now,
     shrineId,
   );
 }

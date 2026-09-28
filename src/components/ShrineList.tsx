@@ -1,5 +1,6 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
+import { useMemo, useState } from 'react';
 import { FlatList, Image, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { PlaceMark } from '@/components/shrine';
@@ -8,31 +9,63 @@ import { formatDot } from '@/lib/dates';
 import { imageUri } from '@/lib/images';
 import { colors, fonts, glow, radius } from '@/theme';
 
-// 記録の「神社ごと」：参拝した神社・お寺を、最近参拝した順に並べる
+// 記録の「神社ごと」：参拝した神社・お寺を、よく参拝する順に並べる。同じ回数なら最近参拝した順
 export function ShrineList({ shrines }: { shrines: ShrineCatalogEntry[] }) {
+  const [onlyFavorites, setOnlyFavorites] = useState(false);
+  const favoriteCount = shrines.filter((s) => s.favoritedAt !== null).length;
+  const sorted = useMemo(
+    // 受け取る配列は最近参拝した順なので、安定ソートで回数だけ並べ替えれば同数の中の順は保たれる
+    () => [...shrines].sort((a, b) => b.visitCount - a.visitCount),
+    [shrines],
+  );
+  const data = onlyFavorites ? sorted.filter((s) => s.favoritedAt !== null) : sorted;
+
   return (
     <FlatList
       key="shrine-list"
-      data={shrines}
+      data={data}
       keyExtractor={(item) => item.id}
       contentContainerStyle={styles.list}
-      ListEmptyComponent={
-        <View style={styles.empty}>
-          <View style={styles.emptyIcon}>
-            <PlaceMark kind="shrine" size={40} />
-          </View>
-          <Text style={styles.emptyTitle}>参拝した神社がここに並びます</Text>
-          <Text style={styles.emptyText}>神社を探して参拝を記録すると、自動でここに加わります。</Text>
-          <Pressable accessibilityRole="button" onPress={() => router.push('/map')} style={styles.emptyButton}>
-            <Text style={styles.emptyButtonText}>神社を探す</Text>
-            <Ionicons name="arrow-forward" size={16} color="#FFFFFF" />
+      ListHeaderComponent={
+        shrines.length > 0 ? (
+          <Pressable
+            accessibilityRole="switch"
+            accessibilityState={{ checked: onlyFavorites }}
+            onPress={() => setOnlyFavorites((v) => !v)}
+            style={[styles.filter, onlyFavorites && styles.filterActive]}
+          >
+            <Ionicons name={onlyFavorites ? 'heart' : 'heart-outline'} size={14} color={onlyFavorites ? '#FFFFFF' : colors.accent} />
+            <Text style={[styles.filterText, onlyFavorites && styles.filterTextActive]}>お気に入り {favoriteCount}</Text>
           </Pressable>
-        </View>
+        ) : null
+      }
+      ListEmptyComponent={
+        onlyFavorites ? (
+          <View style={styles.empty}>
+            <View style={styles.emptyIcon}>
+              <Ionicons name="heart-outline" size={36} color={colors.accent} />
+            </View>
+            <Text style={styles.emptyTitle}>お気に入りの神社はまだありません</Text>
+            <Text style={styles.emptyText}>神社のページ右上のハートを押すと、ここに加わります。</Text>
+          </View>
+        ) : (
+          <View style={styles.empty}>
+            <View style={styles.emptyIcon}>
+              <PlaceMark kind="shrine" size={40} />
+            </View>
+            <Text style={styles.emptyTitle}>参拝した神社がここに並びます</Text>
+            <Text style={styles.emptyText}>神社を探して参拝を記録すると、自動でここに加わります。</Text>
+            <Pressable accessibilityRole="button" onPress={() => router.push('/map')} style={styles.emptyButton}>
+              <Text style={styles.emptyButtonText}>神社を探す</Text>
+              <Ionicons name="arrow-forward" size={16} color="#FFFFFF" />
+            </Pressable>
+          </View>
+        )
       }
       renderItem={({ item }) => (
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={`${item.name}。参拝${item.visitCount}回`}
+          accessibilityLabel={`${item.name}。${item.favoritedAt !== null ? 'お気に入り。' : ''}参拝${item.visitCount}回`}
           onPress={() => router.push({ pathname: '/shrine/[id]', params: { id: item.id } })}
           style={({ pressed }) => [styles.card, pressed && styles.pressed]}
         >
@@ -48,6 +81,9 @@ export function ShrineList({ shrines }: { shrines: ShrineCatalogEntry[] }) {
               <Text style={styles.name} numberOfLines={1}>
                 {item.name}
               </Text>
+              {item.favoritedAt !== null && (
+                <Ionicons name="heart" size={14} color={colors.accent} accessibilityLabel="お気に入り" />
+              )}
               <View style={styles.badge}>
                 <Ionicons name="footsteps" size={11} color={colors.accent} />
                 <Text style={styles.badgeText}>{item.visitCount}回</Text>
@@ -68,6 +104,21 @@ export function ShrineList({ shrines }: { shrines: ShrineCatalogEntry[] }) {
 const styles = StyleSheet.create({
   // 下に「参拝を記録」ボタンが重なるので、最後の行まで見えるよう余白をとる
   list: { paddingHorizontal: 16, paddingBottom: 90, gap: 10 },
+  filter: {
+    alignSelf: 'flex-start',
+    minHeight: 34,
+    paddingHorizontal: 13,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    borderRadius: 17,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surface,
+  },
+  filterActive: { backgroundColor: colors.accent, borderColor: colors.accent },
+  filterText: { fontFamily: fonts.bold, fontSize: 12, color: colors.accentOnTint },
+  filterTextActive: { color: '#FFFFFF' },
   card: {
     minHeight: 96,
     padding: 9,

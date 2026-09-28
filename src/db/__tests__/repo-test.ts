@@ -28,6 +28,7 @@ import {
   searchShrines,
   saveAvatarPreferences,
   saveReminderPreferences,
+  setShrineFavorite,
   setShrineLocation,
   setSoundEnabled,
   startNewBook,
@@ -138,6 +139,34 @@ describe('神社・お寺', () => {
 
     const [shrine] = await searchShrines(db, '明治');
     expect(shrine.kind).toBe('shrine');
+  });
+
+  it('お気に入りにでき、検索ではお気に入りが先に並ぶ', async () => {
+    const book = await getCurrentBook(db);
+    const meiji = await createShrine(db, { name: '明治神宮' });
+    const kanda = await createShrine(db, { name: '神田明神' });
+    await saveVisit(db, book.id, visit(meiji.id, '2025-05-01', ['m.jpg']));
+    await saveVisit(db, book.id, visit(kanda.id, '2025-04-01', ['k.jpg']));
+    expect((await getShrine(db, kanda.id))?.favoritedAt).toBeNull();
+
+    await setShrineFavorite(db, kanda.id, true);
+    expect((await getShrine(db, kanda.id))?.favoritedAt).toEqual(expect.any(String));
+    expect((await searchShrines(db, '')).map((s) => s.name)).toEqual(['神田明神', '明治神宮']);
+    expect((await getShrineCatalogEntry(db, kanda.id))?.favoritedAt).toEqual(expect.any(String));
+
+    await setShrineFavorite(db, kanda.id, false);
+    expect((await getShrine(db, kanda.id))?.favoritedAt).toBeNull();
+    expect((await searchShrines(db, '')).map((s) => s.name)).toEqual(['明治神宮', '神田明神']);
+  });
+
+  it('検索ではよく参拝する神社が先に並ぶ', async () => {
+    const book = await getCurrentBook(db);
+    const meiji = await createShrine(db, { name: '明治神宮' });
+    const kanda = await createShrine(db, { name: '神田明神' });
+    await saveVisit(db, book.id, visit(meiji.id, '2025-05-01', ['m.jpg']));
+    await saveVisit(db, book.id, visit(kanda.id, '2025-03-01', ['k1.jpg']));
+    await saveVisit(db, book.id, visit(kanda.id, '2025-04-01', ['k2.jpg']));
+    expect((await searchShrines(db, '')).map((s) => s.name)).toEqual(['神田明神', '明治神宮']);
   });
 
   it('検索語の % や _ は文字としてあつかう', async () => {

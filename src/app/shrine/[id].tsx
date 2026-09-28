@@ -8,7 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { PlaceMark } from '@/components/shrine';
 import { BackButton } from '@/components/ui';
-import { getShrineCatalogEntry, listShrineVisits, type ShrineCatalogEntry } from '@/db/repo';
+import { getShrineCatalogEntry, listShrineVisits, setShrineFavorite, type ShrineCatalogEntry } from '@/db/repo';
 import { PLACE_KIND_LABEL, type VisitEntry } from '@/db/types';
 import { lineageOf } from '@/lineage/catalog';
 import { formatDot } from '@/lib/dates';
@@ -59,6 +59,19 @@ export default function ShrineDetailScreen() {
   const location = current.prefecture ?? current.address;
   const lineage = lineageOf(current);
   const openEdit = () => router.push({ pathname: '/shrine/edit/[id]', params: { id } });
+  const favorite = current.favoritedAt !== null;
+
+  // 先に表示を切り替え、保存に失敗したら元に戻す
+  async function toggleFavorite() {
+    const next = favorite ? null : new Date().toISOString();
+    setShrine({ ...current, favoritedAt: next });
+    try {
+      await setShrineFavorite(db, current.id, next !== null);
+    } catch {
+      setShrine(current);
+      Alert.alert('お気に入りを保存できませんでした');
+    }
+  }
 
   async function openMap() {
     try {
@@ -85,16 +98,28 @@ export default function ShrineDetailScreen() {
           )}
           <View style={[styles.heroTop, { paddingTop: Math.max(insets.top, 12) }]}>
             {back}
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={`${current.name}の情報を編集`}
-              hitSlop={10}
-              onPress={openEdit}
-              style={styles.editButton}
-            >
-              <Ionicons name="create-outline" size={17} color="#FFFFFF" />
-              <Text style={styles.editText}>編集</Text>
-            </Pressable>
+            <View style={styles.heroActions}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={favorite ? `${current.name}をお気に入りから外す` : `${current.name}をお気に入りにする`}
+                accessibilityState={{ selected: favorite }}
+                hitSlop={10}
+                onPress={toggleFavorite}
+                style={({ pressed }) => [styles.favoriteButton, favorite && styles.favoriteButtonActive, pressed && styles.pressed]}
+              >
+                <Ionicons name={favorite ? 'heart' : 'heart-outline'} size={20} color={favorite ? colors.accent : '#FFFFFF'} />
+              </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={`${current.name}の情報を編集`}
+                hitSlop={10}
+                onPress={openEdit}
+                style={styles.editButton}
+              >
+                <Ionicons name="create-outline" size={17} color="#FFFFFF" />
+                <Text style={styles.editText}>編集</Text>
+              </Pressable>
+            </View>
           </View>
           <View style={styles.heading}>
             <Text style={styles.reading}>{current.kana ?? (current.kind === 'temple' ? 'TEMPLE' : 'SHRINE')}</Text>
@@ -229,6 +254,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
+  heroActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  favoriteButton: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 20,
+    backgroundColor: 'rgba(23,15,52,.44)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,.55)',
+  },
+  favoriteButtonActive: { backgroundColor: '#FFFFFF', borderColor: '#FFFFFF' },
   editButton: {
     minHeight: 40,
     paddingHorizontal: 14,

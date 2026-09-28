@@ -9,13 +9,14 @@ import { imageDir, isImageFileName } from './images';
 const FORMAT = 'goshuin-app-backup';
 // 版2から goshuin.position は帳の中の並び順（版1は参拝の中の順番）
 // 版4からアバターと設定も入れる
-const FORMAT_VERSION = 4;
+// 版5から神社のお気に入り（shrines.favorited_at）も入れる
+const FORMAT_VERSION = 5;
 
 // 復元時に書き込む列。テーブルの定義（db/migrate.ts）と合わせる
 const TABLES = {
   shrines: [
     'id', 'name', 'kana', 'prefecture', 'address', 'latitude', 'longitude',
-    'place_id', 'kind', 'lineage', 'created_at', 'updated_at',
+    'place_id', 'kind', 'lineage', 'favorited_at', 'created_at', 'updated_at',
   ],
   books: ['id', 'name', 'started_on', 'ended_on', 'created_at', 'updated_at'],
   visits: [
