@@ -5,7 +5,7 @@
     "scheme": "goshuinapp",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/icon-amaterasu.png",
     "userInterfaceStyle": "light",
     "ios": {
       "supportsTablet": true,
@@ -15,7 +15,7 @@
       "package": "com.koheip.goshuin",
       "adaptiveIcon": {
         "backgroundColor": "#FFF3FA",
-        "foregroundImage": "./assets/android-icon-foreground.png",
+        "foregroundImage": "./assets/android-icon-amaterasu-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
