@@ -10,7 +10,7 @@ const ANDROID_CERT_SHA1 = process.env.EXPO_PUBLIC_ANDROID_CERT_SHA1;
 const TEXT_ENDPOINT = 'https://places.googleapis.com/v1/places:searchText';
 const NEARBY_ENDPOINT = 'https://places.googleapis.com/v1/places:searchNearby';
 const FIELD_MASK = 'places.id,places.displayName,places.formattedAddress,places.types';
-const BUNDLE_ID = 'com.koheip.goshuin';
+const BUNDLE_ID = 'com.koheip.kamimegu';
 
 export const placesSearchEnabled = Boolean(API_KEY);
 

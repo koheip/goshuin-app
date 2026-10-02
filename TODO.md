@@ -41,7 +41,7 @@
 - [ ] **ストアの開発者アカウントを作る**
   - [ ] Apple Developer Program（年 99 ドル）。個人か組織かを決める（ストアに表示される名前が変わる）
   - [ ] Google Play Console（最初に 25 ドル）。個人のアカウントは、公開前にテスターによるクローズドテストが求められることがあるので、早めに作って条件を確かめる
-- [ ] **ストア用の識別子を確定する**：今は仮に `com.koheip.goshuin`（[app.json](app.json) と [src/lib/places.ts](src/lib/places.ts)）。ストアに出したあとは変えられない
+- [ ] **ストア用の識別子を確定する**：`com.koheip.kamimegu` に決定（[app.json](app.json) と [src/lib/places.ts](src/lib/places.ts)）。ストアに出したあとは変えられない
 - [ ] **Google Cloud の設定**
   - [ ] 課金を設定し、予算アラートを入れる
   - [ ] Places API のキーを制限する：API は Places API (New) だけ、アプリは iOS の Bundle ID と Android のパッケージ名・SHA-1 に限定する（キーはアプリに埋め込まれるので、制限しないと他人に使われて課金される）
