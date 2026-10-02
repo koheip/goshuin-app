@@ -8,8 +8,11 @@
     "icon": "./assets/icon-amaterasu.png",
     "userInterfaceStyle": "light",
     "ios": {
-      "supportsTablet": true,
-      "bundleIdentifier": "com.koheip.goshuin"
+      "supportsTablet": false,
+      "bundleIdentifier": "com.koheip.goshuin",
+      "config": {
+        "usesNonExemptEncryption": false
+      }
     },
     "android": {
       "package": "com.koheip.goshuin",
