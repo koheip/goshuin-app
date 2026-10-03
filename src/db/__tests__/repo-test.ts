@@ -16,6 +16,7 @@ import {
   getShrine,
   getShrineCatalogEntry,
   getVisit,
+  getSoundVolume,
   isSoundEnabled,
   listBookEntries,
   listBooks,
@@ -31,6 +32,7 @@ import {
   setShrineFavorite,
   setShrineLocation,
   setSoundEnabled,
+  setSoundVolume,
   startNewBook,
   updateEntry,
   updateShrine,
@@ -97,6 +99,15 @@ describe('migrateDbIfNeeded', () => {
     expect(await isSoundEnabled(db)).toBe(false);
     await setSoundEnabled(db, true);
     expect(await isSoundEnabled(db)).toBe(true);
+
+    // 音量は 1〜5。まだ設定していなければ 3、範囲の外は端に寄せる
+    expect(await getSoundVolume(db)).toBe(3);
+    await setSoundVolume(db, 5);
+    expect(await getSoundVolume(db)).toBe(5);
+    await setSoundVolume(db, 0);
+    expect(await getSoundVolume(db)).toBe(1);
+    await setSoundVolume(db, 99);
+    expect(await getSoundVolume(db)).toBe(5);
   });
 
   it('版1のデータは、参拝日の古い順に帳の並び順を振り直す', async () => {

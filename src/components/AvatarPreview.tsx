@@ -3,15 +3,15 @@ import { Image, ImageBackground, StyleSheet, View, type ViewStyle } from 'react-
 
 import { EQUIPMENT, type Blessing, type BlessingId, type EquipmentId } from '@/avatar/catalog';
 import { equipmentArtwork } from '@/avatar/assets';
+import { GUIDE_PIXEL_IMAGES } from '@/avatar/images';
 import { glow } from '@/theme';
 
 const avatar = require('../../assets/avatar-base.png');
-const guidePixelSprite = require('../../assets/kami-guide-pixel-soft-v2.png');
 const blessingBackgrounds: Record<BlessingId, number> = {
-  amaterasu: require('../../assets/blessing-amaterasu.png'),
-  susanoo: require('../../assets/blessing-susanoo.png'),
-  okuninushi: require('../../assets/blessing-okuninushi.png'),
-  inari: require('../../assets/blessing-inari.png'),
+  amaterasu: require('../../assets/optimized/blessing-amaterasu.jpg'),
+  susanoo: require('../../assets/optimized/blessing-susanoo.jpg'),
+  okuninushi: require('../../assets/optimized/blessing-okuninushi.jpg'),
+  inari: require('../../assets/optimized/blessing-inari.jpg'),
 };
 
 export function IllustratedAvatar({ blessing, equipment, style }: { blessing: Blessing; equipment: EquipmentId[]; style?: ViewStyle }) {
@@ -31,20 +31,8 @@ export function IllustratedAvatar({ blessing, equipment, style }: { blessing: Bl
 export function PixelAvatar({ blessing, equipment, direction = 0, size = 132 }: { blessing: Blessing; equipment: EquipmentId[]; direction?: 0 | 1 | 2 | 3; size?: number }) {
   void equipment;
   void direction;
-  const cell = guideCells[blessing.id];
-  return (
-    <View style={[styles.pixelWrap, { width: size, height: size }] }>
-      <Image source={guidePixelSprite} resizeMode="stretch" style={[styles.sprite, { top: cell.row ? '-100%' : '0%', left: cell.column ? '-100%' : '0%' }]} />
-    </View>
-  );
+  return <Image source={GUIDE_PIXEL_IMAGES[blessing.id]} resizeMode="stretch" fadeDuration={0} style={{ width: size, height: size }} />;
 }
-
-const guideCells: Record<BlessingId, { row: 0 | 1; column: 0 | 1 }> = {
-  amaterasu: { row: 0, column: 0 },
-  susanoo: { row: 0, column: 1 },
-  okuninushi: { row: 1, column: 0 },
-  inari: { row: 1, column: 1 },
-};
 
 function EquipmentBadges({ equipment, compact }: { equipment: EquipmentId[]; compact?: boolean }) {
   return (
@@ -76,8 +64,6 @@ const styles = StyleSheet.create({
   blessingBackdrop: { borderRadius: 28 },
   halo: { position: 'absolute', top: 34, width: 210, height: 210, borderRadius: 105, borderWidth: 3, opacity: .65, boxShadow: '0px 0px 30px rgba(255,180,94,.5)' },
   avatarImage: { width: '96%', height: '98%' },
-  pixelWrap: { overflow: 'hidden' },
-  sprite: { position: 'absolute', width: '200%', height: '200%' },
   badges: { position: 'absolute', right: 10, bottom: 10, flexDirection: 'row', gap: 5 },
   badgesCompact: { right: 5, bottom: 5, gap: 2 },
   badge: { width: 31, height: 31, borderRadius: 16, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: 'rgba(255,255,255,.92)', boxShadow: '0px 3px 9px rgba(57,35,92,.25)' },

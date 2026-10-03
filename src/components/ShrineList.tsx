@@ -1,8 +1,9 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { FlatList, Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { FlatList, Image, StyleSheet, Text, View } from 'react-native';
 
+import { Pressable } from '@/components/Pressable';
 import { PlaceMark } from '@/components/shrine';
 import type { ShrineCatalogEntry } from '@/db/repo';
 import { formatDot } from '@/lib/dates';

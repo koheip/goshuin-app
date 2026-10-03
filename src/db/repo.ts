@@ -86,6 +86,29 @@ export async function setSoundEnabled(db: SQLiteDatabase, enabled: boolean): Pro
   );
 }
 
+// 効果音の音量。1（小さい）〜5（大きい）。まだ設定していなければ 3
+export const SOUND_VOLUME_MAX = 5;
+const SOUND_VOLUME_DEFAULT = 3;
+
+export async function getSoundVolume(db: SQLiteDatabase): Promise<number> {
+  const row = await db.getFirstAsync<{ value: string }>(
+    'SELECT value FROM app_settings WHERE key = ?',
+    'sound_volume',
+  );
+  const level = Number(row?.value);
+  return Number.isInteger(level) && level >= 1 && level <= SOUND_VOLUME_MAX ? level : SOUND_VOLUME_DEFAULT;
+}
+
+export async function setSoundVolume(db: SQLiteDatabase, level: number): Promise<void> {
+  await db.runAsync(
+    `INSERT INTO app_settings (key, value, updated_at) VALUES (?, ?, ?)
+     ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at`,
+    'sound_volume',
+    String(Math.min(SOUND_VOLUME_MAX, Math.max(1, Math.round(level)))),
+    new Date().toISOString(),
+  );
+}
+
 export type ReminderPreferences = {
   enabled: boolean;
   weekday: number;

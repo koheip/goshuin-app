@@ -3,9 +3,10 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useCallback, useState } from 'react';
-import { Alert, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Image, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { Pressable } from '@/components/Pressable';
 import { PlaceMark } from '@/components/shrine';
 import { BackButton } from '@/components/ui';
 import { getShrineCatalogEntry, listShrineVisits, setShrineFavorite, type ShrineCatalogEntry } from '@/db/repo';

@@ -1,20 +1,11 @@
 import type { ReactNode } from 'react';
-import {
-  ActivityIndicator,
-  Pressable,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-  type TextInputProps,
-  type TextStyle,
-  type ViewStyle,
-} from 'react-native';
+import { ActivityIndicator, StyleSheet, Text, TextInput, View, type TextInputProps, type TextStyle, type ViewStyle } from 'react-native';
 
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 
+import { Pressable } from '@/components/Pressable';
 import { Sakura } from '@/components/shrine';
 import { colors, fonts, glass, glow, gradients, radius } from '@/theme';
 

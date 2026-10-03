@@ -2,6 +2,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { Tabs } from 'expo-router';
 import { StyleSheet, View, type ColorValue } from 'react-native';
 
+import { tapFeedback } from '@/lib/feedback';
 import { colors, fonts, glow } from '@/theme';
 
 function ScrollTabIcon({ color }: { color: ColorValue }) {
@@ -38,6 +39,7 @@ function ToriiTabIcon({ color }: { color: ColorValue }) {
 export default function TabLayout() {
   return (
     <Tabs
+      screenListeners={{ tabPress: tapFeedback }}
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: colors.accent,

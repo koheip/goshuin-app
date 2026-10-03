@@ -3,9 +3,10 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useCallback, useState } from 'react';
-import { ImageBackground, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ImageBackground, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { Pressable } from '@/components/Pressable';
 import { PlaceMark } from '@/components/shrine';
 import { BackButton, Sparkle } from '@/components/ui';
 import { listVisitedShrines, type ShrineCatalogEntry } from '@/db/repo';
@@ -137,10 +138,9 @@ export default function LineageScreen() {
               ))}
             </View>
           ) : visited && (
-            <Pressable accessibilityRole="button" onPress={findShrines} style={({ pressed }) => [styles.search, pressed && styles.pressed]}>
-              <Text style={styles.searchText}>まだ参拝していません。{lineage.name}を探してみましょう</Text>
-              <Ionicons name="arrow-forward" size={16} color={colors.accent} />
-            </Pressable>
+            <View style={styles.search}>
+              <Text style={styles.searchText}>まだ参拝していません</Text>
+            </View>
           )}
 
           <Text style={styles.note}>

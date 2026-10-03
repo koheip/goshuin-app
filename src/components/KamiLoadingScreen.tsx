@@ -8,7 +8,7 @@ import { Torii } from '@/components/shrine';
 import { PixelWordmark } from '@/components/ui';
 import { colors, fonts, glow } from '@/theme';
 
-const hero = require('../../assets/kami-megu-home-hero.png');
+const hero = require('../../assets/optimized/kami-megu-home-hero.jpg');
 
 const FALLING = [
   ['shide', .08, 0], ['sakaki', .22, 420], ['shide', .39, 760], ['magatama', .58, 180],

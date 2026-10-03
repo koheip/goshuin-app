@@ -8,6 +8,7 @@ import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { Button } from '@/components/ui';
 import { BackupFormatError, exportBackup, restoreBackup } from '@/lib/backup';
+import { loadSoundSettings } from '@/lib/feedback';
 import { colors, fonts, radius } from '@/theme';
 
 export default function BackupScreen() {
@@ -54,6 +55,8 @@ export default function BackupScreen() {
     setBusy('restore');
     try {
       const count = await restoreBackup(db, picked.assets[0].uri);
+      // バックアップには「効果音」と「音量」の設定も入っているので、ボタンの音に反映し直す
+      loadSoundSettings(db).catch(() => {});
       Alert.alert('戻しました', `御朱印 ${count}枚を読み込みました。`, [
         { text: 'OK', onPress: () => router.dismissTo('/') },
       ]);

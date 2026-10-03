@@ -1,7 +1,8 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, Stack } from 'expo-router';
-import { Pressable } from 'react-native';
+import {  } from 'react-native';
 
+import { Pressable } from '@/components/Pressable';
 import { HeaderBackButton } from '@/components/ui';
 import { DraftProvider } from '@/record/draft';
 import { colors, fonts } from '@/theme';

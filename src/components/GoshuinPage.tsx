@@ -1,5 +1,6 @@
-import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Image, StyleSheet, Text, View } from 'react-native';
 
+import { Pressable } from '@/components/Pressable';
 import type { GoshuinEntry } from '@/db/types';
 import { formatDot } from '@/lib/dates';
 import { imageUri } from '@/lib/images';

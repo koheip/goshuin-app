@@ -7,7 +7,7 @@ import {
 } from '@expo-google-fonts/m-plus-rounded-1c';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
-import { SQLiteProvider } from 'expo-sqlite';
+import { SQLiteProvider, useSQLiteContext } from 'expo-sqlite';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useState } from 'react';
 
@@ -15,6 +15,7 @@ import { KamiLoadingScreen } from '@/components/KamiLoadingScreen';
 import { TutorialProvider } from '@/components/TutorialProvider';
 import { HeaderBackButton } from '@/components/ui';
 import { migrateDbIfNeeded } from '@/db/migrate';
+import { loadSoundSettings } from '@/lib/feedback';
 import { useVisitReminderTap } from '@/notifications/reminder';
 import { colors, fonts } from '@/theme';
 
@@ -23,6 +24,15 @@ SplashScreen.preventAutoHideAsync();
 // 画面のスタックができてから、通知からの移動を受け付ける
 function ReminderTapObserver() {
   useVisitReminderTap();
+  return null;
+}
+
+// 起動時に「効果音」と「音量」の設定を読み、ボタンの音に反映する
+function TapSoundSetting() {
+  const db = useSQLiteContext();
+  useEffect(() => {
+    loadSoundSettings(db).catch(() => {});
+  }, [db]);
   return null;
 }
 
@@ -68,6 +78,7 @@ export default function RootLayout() {
         <Stack.Screen name="shrine/[id]" options={{ headerShown: false }} />
         <Stack.Screen name="shrine/edit/[id]" options={{ title: '神社・お寺を編集' }} />
         <Stack.Screen name="lineage/[id]" options={{ headerShown: false }} />
+        <Stack.Screen name="kami/[id]" options={{ headerShown: false }} />
         <Stack.Screen name="backup" options={{ title: 'バックアップ' }} />
         <Stack.Screen name="nearby" options={{ title: '近くの神社・お寺' }} />
         <Stack.Screen name="reminder" options={{ headerShown: false }} />
@@ -77,6 +88,7 @@ export default function RootLayout() {
         <Stack.Screen name="licenses" options={{ title: 'ライセンス' }} />
       </Stack>
       <ReminderTapObserver />
+      <TapSoundSetting />
       </TutorialProvider>
       </SQLiteProvider>
       {showLoading && <KamiLoadingScreen onFinish={finishLoading} />}

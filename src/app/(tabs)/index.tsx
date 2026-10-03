@@ -3,9 +3,10 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { router, useFocusEffect } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useCallback, useState, type ReactNode } from 'react';
-import { Image, ImageBackground, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Image, ImageBackground, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { Pressable } from '@/components/Pressable';
 import { BLESSINGS, type BlessingId } from '@/avatar/catalog';
 import { GUIDE_ILLUSTRATIONS } from '@/avatar/images';
 import { PixelAvatar } from '@/components/AvatarPreview';

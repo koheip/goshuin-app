@@ -1,18 +1,21 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { router } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type PropsWithChildren } from 'react';
-import { Animated, ImageBackground, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Animated, ImageBackground, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { Pressable } from '@/components/Pressable';
+import { ReminderInvite } from '@/components/ReminderInvite';
 import { isTutorialComplete, setTutorialComplete } from '@/db/repo';
 import { colors, fonts, glow } from '@/theme';
 
 const slides = [
-  { chapter: '一', title: '神さまって、\n意外と近くにいる。', body: 'KAMI MEGUは、神社との出会いと\nあなたの参拝を残す巡礼ノートです。', label: 'WELCOME TO KAMI MEGU', icon: 'sparkles' as const, image: require('../../assets/kami-megu-home-hero.png'), guideTitle: 'まずは、めぐりを始めましょう', guideBody: '画面下のメニューから、いつでも神社さがし・記録・図鑑へ移動できます。', guideIcon: 'heart' as const },
-  { chapter: '二', title: '近くの神社へ\n会いにいこう', body: '「めぐる」タブで、今いる場所の近くにある\n神社・お寺を近い順に探せます。', label: 'FIND YOUR SHRINE', icon: 'search' as const, image: require('../../assets/blessing-amaterasu.png'), guideTitle: '名前でも探せます', guideBody: '気になる場所は Google マップで開けます。「参拝を記録」から、そのまま記録も始められます。', guideIcon: 'navigate' as const },
-  { chapter: '三', title: '参拝の思い出を\nそっと残そう', body: '参拝した日、写真、御朱印、ひとこと。\nその日の気持ちまで一緒に記録できます。', label: 'KEEP YOUR MEMORY', icon: 'camera' as const, image: require('../../assets/blessing-okuninushi.png'), guideTitle: '「参拝を記録」から残せます', guideBody: '御朱印がない日も大丈夫。写真だけ、メモだけでも参拝記録になります。', guideIcon: 'add-circle' as const },
-  { chapter: '四', title: 'ご縁がつながり\n神話がひらく', body: '参拝を重ねると神さまや神社の物語が解放。\nあなただけの図鑑が育っていきます。', label: 'DISCOVER THE MYTHS', icon: 'book' as const, image: require('../../assets/kami-catalog-amaterasu-front-v1.png'), guideTitle: '解放演出を見逃さないで', guideBody: '新しいご縁が結ばれると特別な演出が発生。図鑑で神話を読み返せます。', guideIcon: 'lock-open' as const },
+  { chapter: '一', title: '神さまって、\n意外と近くにいる。', body: 'KAMI MEGUは、神社との出会いと\nあなたの参拝を残す巡礼ノートです。', label: 'WELCOME TO KAMI MEGU', icon: 'sparkles' as const, image: require('../../assets/optimized/kami-megu-home-hero.jpg'), guideTitle: 'まずは、めぐりを始めましょう', guideBody: '画面下のメニューから、いつでも神社さがし・記録・図鑑へ移動できます。', guideIcon: 'heart' as const },
+  { chapter: '二', title: '近くの神社へ\n会いにいこう', body: '「めぐる」タブで、今いる場所の近くにある\n神社・お寺を近い順に探せます。', label: 'FIND YOUR SHRINE', icon: 'search' as const, image: require('../../assets/optimized/blessing-amaterasu.jpg'), guideTitle: '名前でも探せます', guideBody: '気になる場所は Google マップで開けます。「参拝を記録」から、そのまま記録も始められます。', guideIcon: 'navigate' as const },
+  { chapter: '三', title: '参拝の思い出を\nそっと残そう', body: '参拝した日、写真、御朱印、ひとこと。\nその日の気持ちまで一緒に記録できます。', label: 'KEEP YOUR MEMORY', icon: 'camera' as const, image: require('../../assets/optimized/blessing-okuninushi.jpg'), guideTitle: '「参拝を記録」から残せます', guideBody: '御朱印がない日も大丈夫。写真だけ、メモだけでも参拝記録になります。', guideIcon: 'add-circle' as const },
+  { chapter: '四', title: 'ご縁がつながり\n神話がひらく', body: '参拝を重ねると神さまや神社の物語が解放。\nあなただけの図鑑が育っていきます。', label: 'DISCOVER THE MYTHS', icon: 'book' as const, image: require('../../assets/optimized/kami-catalog-amaterasu-front-v1.jpg'), guideTitle: '解放演出を見逃さないで', guideBody: '新しいご縁が結ばれると特別な演出が発生。図鑑で神話を読み返せます。', guideIcon: 'lock-open' as const },
 ];
 
 type TutorialContextValue = { replayTutorial: () => void };
@@ -25,6 +28,9 @@ export function TutorialProvider({ children }: PropsWithChildren) {
   const [visible, setVisible] = useState(false);
   const [ready, setReady] = useState(false);
   const [page, setPage] = useState(0);
+  // はじめての起動で出したチュートリアルか（設定から見直したときは、リマインダーの案内を出さない）
+  const [firstRun, setFirstRun] = useState(false);
+  const [inviting, setInviting] = useState(false);
   const [contentOpacity] = useState(() => new Animated.Value(0));
   const [contentY] = useState(() => new Animated.Value(28));
   const [imageScale] = useState(() => new Animated.Value(1.05));
@@ -32,7 +38,7 @@ export function TutorialProvider({ children }: PropsWithChildren) {
 
   useEffect(() => {
     let active = true;
-    isTutorialComplete(db).then((complete) => { if (active) { setVisible(!complete); setReady(true); } });
+    isTutorialComplete(db).then((complete) => { if (active) { setVisible(!complete); setFirstRun(!complete); setReady(true); } });
     return () => { active = false; };
   }, [db]);
 
@@ -56,7 +62,16 @@ export function TutorialProvider({ children }: PropsWithChildren) {
     return () => animation.stop();
   }, [auraPulse, visible]);
 
-  const finish = useCallback(async () => { await setTutorialComplete(db, true); setVisible(false); setPage(0); }, [db]);
+  const finish = useCallback(async () => {
+    await setTutorialComplete(db, true);
+    setVisible(false);
+    setPage(0);
+    // はじめてのときだけ、続けて参拝リマインダーを案内する
+    if (firstRun) {
+      setFirstRun(false);
+      setInviting(true);
+    }
+  }, [db, firstRun]);
   const replayTutorial = useCallback(() => { setPage(0); setVisible(true); }, []);
   const value = useMemo(() => ({ replayTutorial }), [replayTutorial]);
   const slide = slides[page];
@@ -66,6 +81,7 @@ export function TutorialProvider({ children }: PropsWithChildren) {
   return (
     <TutorialContext.Provider value={value}>
       {children}
+      {inviting && !visible && <ReminderInvite onAccept={() => { setInviting(false); router.push('/reminder'); }} onClose={() => setInviting(false)} />}
       {ready && visible && (
         <View style={styles.overlay}>
           <Animated.View style={[StyleSheet.absoluteFill, { transform: [{ scale: imageScale }] }]}>

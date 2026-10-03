@@ -4,15 +4,17 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useEffect, useState } from 'react';
-import { Animated, ImageBackground, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Animated, ImageBackground, Modal, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { Pressable } from '@/components/Pressable';
 import { BLESSINGS, type BlessingId } from '@/avatar/catalog';
 import { KAMI_CATALOG_CARD_ILLUSTRATIONS } from '@/avatar/images';
 import { PixelAvatar } from '@/components/AvatarPreview';
 import { Sakura, Torii } from '@/components/shrine';
 import { Sparkle } from '@/components/ui';
 import { isSoundEnabled } from '@/db/repo';
+import { soundVolume } from '@/lib/feedback';
 import { getLineage } from '@/lineage/catalog';
 import { KAMI_BACKGROUNDS } from '@/lineage/images';
 import { colors, fonts, glow, gradients } from '@/theme';
@@ -60,6 +62,8 @@ export default function RecordSuccessScreen() {
     isSoundEnabled(db)
       .then(async (enabled) => {
         if (!enabled) return;
+        chime.volume = 0.55;
+        chime.volume = soundVolume();
         await chime.seekTo(0);
         chime.play();
       })

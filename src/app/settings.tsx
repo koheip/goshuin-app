@@ -3,12 +3,14 @@ import Constants from 'expo-constants';
 import { router, useFocusEffect, type Href } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useCallback, useState, type ReactNode } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { Pressable } from '@/components/Pressable';
 import { useTutorial } from '@/components/TutorialProvider';
 import { DreamyBackground, Sparkle } from '@/components/ui';
-import { getReminderPreferences, isSoundEnabled, setSoundEnabled, type ReminderPreferences } from '@/db/repo';
+import { getReminderPreferences, getSoundVolume, isSoundEnabled, setSoundEnabled, setSoundVolume, SOUND_VOLUME_MAX, type ReminderPreferences } from '@/db/repo';
+import { setSoundVolumeLevel, setTapSoundEnabled } from '@/lib/feedback';
 import { colors, fonts, glow, radius } from '@/theme';
 
 const weekdays = ['日', '月', '火', '水', '木', '金', '土'];
@@ -20,15 +22,17 @@ export default function SettingsScreen() {
   const { replayTutorial } = useTutorial();
   const [reminder, setReminder] = useState<ReminderPreferences | null>(null);
   const [sound, setSound] = useState(true);
+  const [volume, setVolume] = useState(3);
 
   // リマインダーの画面から戻ったときにも読み直す
   useFocusEffect(
     useCallback(() => {
       let active = true;
-      Promise.all([getReminderPreferences(db), isSoundEnabled(db)]).then(([nextReminder, nextSound]) => {
+      Promise.all([getReminderPreferences(db), isSoundEnabled(db), getSoundVolume(db)]).then(([nextReminder, nextSound, nextVolume]) => {
         if (!active) return;
         setReminder(nextReminder);
         setSound(nextSound);
+        setVolume(nextVolume);
       });
       return () => { active = false; };
     }, [db]),
@@ -37,7 +41,22 @@ export default function SettingsScreen() {
   function toggleSound() {
     const next = !sound;
     setSound(next);
-    setSoundEnabled(db, next).catch(() => setSound(!next));
+    setTapSoundEnabled(next);
+    setSoundEnabled(db, next).catch(() => {
+      setSound(!next);
+      setTapSoundEnabled(!next);
+    });
+  }
+
+  function changeVolume(next: number) {
+    if (next < 1 || next > SOUND_VOLUME_MAX || next === volume) return;
+    const previous = volume;
+    setVolume(next);
+    setSoundVolumeLevel(next);
+    setSoundVolume(db, next).catch(() => {
+      setVolume(previous);
+      setSoundVolumeLevel(previous);
+    });
   }
 
   const reminderCaption = !reminder
@@ -69,7 +88,7 @@ export default function SettingsScreen() {
         </Section>
 
         <Section title="サウンド">
-          <Row icon="musical-notes" label="効果音" caption="参拝を記録したときに音を鳴らす">
+          <Row icon="musical-notes" label="効果音" caption="ボタンを押したときと、参拝を記録したときに音を鳴らす">
             <Pressable
               accessibilityRole="switch"
               accessibilityLabel="効果音"
@@ -79,6 +98,23 @@ export default function SettingsScreen() {
             >
               <View style={[styles.knob, sound && styles.knobOn]} />
             </Pressable>
+          </Row>
+          <Row icon="volume-medium" label="音量" caption={sound ? `${volume} / ${SOUND_VOLUME_MAX}` : '効果音がオフです'}>
+            <View style={[styles.meter, !sound && styles.meterOff]}>
+              <Pressable accessibilityRole="button" accessibilityLabel="音量を下げる" disabled={!sound || volume <= 1} onPress={() => changeVolume(volume - 1)} hitSlop={8} style={styles.meterButton}>
+                <Ionicons name="remove" size={18} color={colors.accent} />
+              </Pressable>
+              <View style={styles.meterBars}>
+                {Array.from({ length: SOUND_VOLUME_MAX }, (_, index) => (
+                  <Pressable key={index} accessibilityRole="button" accessibilityLabel={`音量を ${index + 1} にする`} disabled={!sound} onPress={() => changeVolume(index + 1)} hitSlop={{ top: 12, bottom: 12 }} style={styles.meterBarHit}>
+                    <View style={[styles.meterBar, { height: 8 + index * 4 }, index < volume && styles.meterBarOn]} />
+                  </Pressable>
+                ))}
+              </View>
+              <Pressable accessibilityRole="button" accessibilityLabel="音量を上げる" disabled={!sound || volume >= SOUND_VOLUME_MAX} onPress={() => changeVolume(volume + 1)} hitSlop={8} style={styles.meterButton}>
+                <Ionicons name="add" size={18} color={colors.accent} />
+              </Pressable>
+            </View>
           </Row>
         </Section>
 
@@ -160,4 +196,11 @@ const styles = StyleSheet.create({
   switchOn: { backgroundColor: colors.accent },
   knob: { width: 24, height: 24, borderRadius: 12, backgroundColor: '#FFFFFF', boxShadow: glow.soft },
   knobOn: { marginLeft: 22 },
+  meter: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  meterOff: { opacity: 0.4 },
+  meterButton: { width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.accentTint },
+  meterBars: { height: 30, flexDirection: 'row', alignItems: 'flex-end' },
+  meterBarHit: { height: 30, paddingHorizontal: 2.5, justifyContent: 'flex-end' },
+  meterBar: { width: 7, borderRadius: 3.5, backgroundColor: colors.track },
+  meterBarOn: { backgroundColor: colors.accent },
 });

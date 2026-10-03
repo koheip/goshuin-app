@@ -1,7 +1,8 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useState } from 'react';
-import { Alert, Linking, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, Linking, StyleSheet, Text, View } from 'react-native';
 
+import { Pressable } from '@/components/Pressable';
 import { Button } from '@/components/ui';
 import { getCurrentCoords, LocationPermissionError, type Coords } from '@/lib/location';
 import { colors, fonts } from '@/theme';

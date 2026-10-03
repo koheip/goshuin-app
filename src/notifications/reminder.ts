@@ -12,6 +12,13 @@ Notifications.setNotificationHandler({
   }),
 });
 
+// 通知が許可されていない。端末の設定アプリで許可してもらう必要がある
+export class NotificationPermissionError extends Error {
+  constructor() {
+    super('通知が許可されていません');
+  }
+}
+
 export async function scheduleVisitReminder(weekday: number, hour: number, minute: number): Promise<string> {
   if (Platform.OS === 'web') throw new Error('通知の設定はiOS・Android版で利用できます。');
 
@@ -27,7 +34,7 @@ export async function scheduleVisitReminder(weekday: number, hour: number, minut
 
   const existing = await Notifications.getPermissionsAsync();
   const permission = existing.granted ? existing : await Notifications.requestPermissionsAsync();
-  if (!permission.granted) throw new Error('通知が許可されていません。端末の設定から通知を許可してください。');
+  if (!permission.granted) throw new NotificationPermissionError();
 
   return Notifications.scheduleNotificationAsync({
     content: {

@@ -2,8 +2,9 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, useFocusEffect } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useCallback, useEffect, useRef, useState, type ReactElement, type ReactNode } from 'react';
-import { ActivityIndicator, Alert, FlatList, Linking, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Alert, FlatList, Linking, StyleSheet, Text, TextInput, View } from 'react-native';
 
+import { Pressable } from '@/components/Pressable';
 import { PlaceMark } from '@/components/shrine';
 import { GoogleAttribution } from '@/components/GoogleAttribution';
 import { Button, Chip, ChipGroup } from '@/components/ui';

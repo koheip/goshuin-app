@@ -3,9 +3,10 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { router, useFocusEffect } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useCallback, useState } from 'react';
-import { Alert, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Modal, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { Pressable } from '@/components/Pressable';
 import { BLESSINGS, type BlessingId, type EquipmentId } from '@/avatar/catalog';
 import { PixelAvatar } from '@/components/AvatarPreview';
 import { KamiLoadingScreen } from '@/components/KamiLoadingScreen';
@@ -70,10 +71,13 @@ export default function AvatarScreen() {
             </Pressable>;
           })}
         </View>
+      </ScrollView>
+      {/* 下までスクロールしなくても押せるよう、ボタンは画面の下に固定する */}
+      <View style={styles.footer}>
         <Pressable accessibilityRole="button" disabled={saving} onPress={save} style={({ pressed }) => [styles.save, pressed && styles.pressed]}>
           <LinearGradient colors={gradients.primary} style={StyleSheet.absoluteFill} /><Ionicons name="sparkles" size={18} color="#FFFFFF" /><Text style={styles.saveText}>{saving ? '保存中…' : 'この神さまと一緒にめぐる'}</Text>
         </Pressable>
-      </ScrollView>
+      </View>
       <Modal visible={confirmed} transparent animationType="fade" onRequestClose={() => setConfirmed(false)}>
         <View style={styles.modalBackdrop}>
           <Pressable accessibilityRole="button" accessibilityLabel="閉じる" onPress={() => setConfirmed(false)} style={StyleSheet.absoluteFill} />
@@ -103,7 +107,8 @@ export default function AvatarScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.paper }, content: { padding: 18, paddingBottom: 44, gap: 14 },
+  screen: { flex: 1, backgroundColor: colors.paper }, content: { padding: 18, paddingBottom: 16, gap: 14 },
+  footer: { paddingHorizontal: 18, paddingTop: 10, paddingBottom: 14, borderTopWidth: 1, borderTopColor: colors.line, backgroundColor: 'rgba(255,255,255,.9)' },
   topbar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }, back: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,.82)', borderWidth: 1, borderColor: colors.line }, topTitle: { fontFamily: fonts.bold, fontSize: 14, color: colors.ink },
   hero: { alignItems: 'center', padding: 20, borderRadius: 28, backgroundColor: 'rgba(255,255,255,.78)', borderWidth: 1, borderColor: colors.line, boxShadow: glow.soft }, kicker: { fontFamily: fonts.bold, fontSize: 9, letterSpacing: 1.8, color: colors.violet }, titleRow: { marginTop: 3, flexDirection: 'row', alignItems: 'center', gap: 5 }, title: { fontFamily: fonts.displayHeavy, fontSize: 27, color: colors.ink }, subtitle: { marginTop: 5, marginBottom: 2, fontFamily: fonts.regular, fontSize: 11, color: colors.muted, textAlign: 'center' }, deity: { marginTop: -8, fontFamily: fonts.bold, fontSize: 11, color: colors.accentOnTint },
   list: { gap: 8 }, option: { minHeight: 84, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', gap: 10, borderRadius: 21, backgroundColor: 'rgba(255,255,255,.78)', borderWidth: 1.5, borderColor: colors.line }, optionActive: { borderColor: colors.accent, backgroundColor: colors.accentTint }, optionLocked: { backgroundColor: 'rgba(255,255,255,.55)' }, hiddenGuide: { width: 68, height: 68, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.track, borderWidth: 1, borderColor: colors.lineStrong }, optionCopy: { flex: 1 }, optionName: { fontFamily: fonts.bold, fontSize: 14, color: colors.ink }, optionMeta: { marginTop: 3, fontFamily: fonts.regular, fontSize: 10, color: colors.muted },

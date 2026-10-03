@@ -3,21 +3,10 @@ import { randomUUID } from 'expo-crypto';
 import { router } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useState } from 'react';
-import {
-  Alert,
-  Image,
-  KeyboardAvoidingView,
-  Linking,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
+import { Alert, Image, KeyboardAvoidingView, Linking, Platform, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { Pressable } from '@/components/Pressable';
 import { Button, Chip, ChipGroup, Field, FieldLabel, Stepper } from '@/components/ui';
 import { getAvatarPreferences, getCurrentBook, getJourneyStats, getShrine, listVisitedShrines, saveVisit } from '@/db/repo';
 import { FEE_LABEL, GOSHUIN_KIND_LABEL, type GoshuinKind, WEATHER_OPTIONS } from '@/db/types';
