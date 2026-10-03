@@ -92,7 +92,8 @@ export default function SettingsScreen() {
           <Row icon="information-circle" label="バージョン">
             <Text style={styles.value}>{Constants.expoConfig?.version ?? '—'}</Text>
           </Row>
-          <LinkRow icon="shield-checkmark" label="プライバシーポリシー" href="/privacy" />
+          <LinkRow icon="reader" label="利用規約" href="/terms" />
+          <LinkRow icon="shield-checkmark"label="プライバシーポリシー" href="/privacy" />
           <LinkRow icon="document-text" label="ライセンス" href="/licenses" />
         </Section>
       </ScrollView>

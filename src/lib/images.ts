@@ -30,12 +30,10 @@ export type PickSource = 'camera' | 'library';
 // 撮影または写真選択し、縮小・JPEG再圧縮した一時ファイルのURIを返す。
 // 再エンコードで撮影時の位置情報などのEXIFは書き出されない
 export async function pickGoshuinImage(source: PickSource): Promise<string | null> {
-  const permission =
-    source === 'camera'
-      ? await ImagePicker.requestCameraPermissionsAsync()
-      : await ImagePicker.requestMediaLibraryPermissionsAsync();
-  if (!permission.granted) {
-    throw new PermissionDeniedError(source);
+  // 写真を選ぶ画面は OS が出すので、許可は要らない（写真ライブラリ全体への許可を求めない）
+  if (source === 'camera') {
+    const permission = await ImagePicker.requestCameraPermissionsAsync();
+    if (!permission.granted) throw new PermissionDeniedError(source);
   }
 
   const options: ImagePicker.ImagePickerOptions = {

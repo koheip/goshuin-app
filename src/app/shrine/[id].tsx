@@ -227,8 +227,6 @@ export default function ShrineDetailScreen() {
               </Pressable>
             ))}
           </View>
-
-          <Text style={styles.note}>由緒・御祭神などの公式情報は、正確性を確認できる情報源と連携してから追加できる設計です。</Text>
         </View>
       </ScrollView>
     </View>
@@ -409,6 +407,5 @@ const styles = StyleSheet.create({
     backgroundColor: colors.accent,
   },
   primaryText: { fontFamily: fonts.bold, fontSize: 13, color: '#FFFFFF' },
-  note: { marginTop: 8, fontFamily: fonts.regular, fontSize: 9, lineHeight: 16, color: colors.muted },
   pressed: { opacity: 0.75 },
 });

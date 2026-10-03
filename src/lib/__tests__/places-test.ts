@@ -1,6 +1,6 @@
 /// <reference types="jest" />
 
-import { distanceMeters, formatDistance, guessKind, parseNearbyPlaces, parsePlaces } from '../places';
+import { collectProviders, distanceMeters, formatDistance, guessKind, parseNearbyPlaces, parsePlaces } from '../places';
 
 describe('guessKind', () => {
   it('Google の種別があればそれを使う', () => {
@@ -38,6 +38,19 @@ describe('parsePlaces', () => {
 
   it('結果がなければ空にする', () => {
     expect(parsePlaces({})).toEqual([]);
+  });
+
+  it('Google 以外の提供元があれば、重複なしで集める', () => {
+    const places = parsePlaces({
+      places: [
+        { id: 'a', displayName: { text: 'A神社' }, attributions: [{ provider: '提供元X' }, {}] },
+        { id: 'b', displayName: { text: 'B神社' }, attributions: [{ provider: '提供元X' }, { provider: '提供元Y' }] },
+        { id: 'c', displayName: { text: 'C神社' } },
+      ],
+    });
+    expect(places[0].providers).toEqual(['提供元X']);
+    expect(places[2].providers).toBeUndefined();
+    expect(collectProviders(places)).toEqual(['提供元X', '提供元Y']);
   });
 });
 

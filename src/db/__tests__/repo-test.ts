@@ -321,7 +321,7 @@ describe('編集と削除', () => {
     expect(await getEntry(db, b.id)).toMatchObject({ visitedOn: '2025-04-02', omikuji: '大吉', kind: 'regular', fee: 500 });
   });
 
-  it('最後の1枚を消すと、参拝の記録も消える', async () => {
+  it('最後の1枚を消しても、参拝の記録は残る', async () => {
     const book = await getCurrentBook(db);
     const shrine = await createShrine(db, { name: '一の宮' });
     await saveVisit(db, book.id, visit(shrine.id, '2025-04-01', ['a.jpg', 'b.jpg']));
@@ -331,7 +331,8 @@ describe('編集と削除', () => {
     expect((await searchShrines(db, ''))[0].visitCount).toBe(1);
 
     expect(await deleteGoshuin(db, b.id)).toBe('b.jpg');
-    expect((await searchShrines(db, ''))[0].visitCount).toBe(0);
+    expect((await searchShrines(db, ''))[0].visitCount).toBe(1);
+    expect(await listBookEntries(db, book.id)).toHaveLength(0);
     expect(await deleteGoshuin(db, b.id)).toBeNull();
   });
 });

@@ -9,9 +9,14 @@ export async function migrateDbIfNeeded(db: SQLiteDatabase) {
   await db.execAsync('PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON;');
 
   const row = await db.getFirstAsync<{ user_version: number }>('PRAGMA user_version');
-  let version = row?.user_version ?? 0;
+  const version = row?.user_version ?? 0;
   if (version >= LATEST_VERSION) return;
 
+  // 途中でアプリが止まっても半端な状態が残らないよう、1つのトランザクションで適用する
+  await db.withTransactionAsync(() => applyMigrations(db, version));
+}
+
+async function applyMigrations(db: SQLiteDatabase, version: number) {
   if (version === 0) {
     await db.execAsync(`
       CREATE TABLE shrines (

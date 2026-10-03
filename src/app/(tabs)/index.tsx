@@ -70,7 +70,7 @@ export default function HomeScreen() {
               </Pressable>
             </View>
 
-            <Pressable accessibilityRole="button" accessibilityLabel="地図で近くの神社を探す" onPress={() => router.push('/map')} style={({ pressed }) => [styles.questionPill, pressed && styles.pressed]}>
+            <Pressable accessibilityRole="button" accessibilityLabel="近くの神社を探す" onPress={() => router.push('/map')} style={({ pressed }) => [styles.questionPill, pressed && styles.pressed]}>
               <View style={styles.questionIcon}><Torii size={27} /></View>
               <Text style={styles.questionText}>きょうは、どの神さまに会いにいく？</Text>
               <LinearGradient colors={gradients.primary} style={styles.arrowCircle}>

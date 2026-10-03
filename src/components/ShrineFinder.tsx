@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState, type ReactElement, type React
 import { ActivityIndicator, Alert, FlatList, Linking, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { PlaceMark } from '@/components/shrine';
+import { GoogleAttribution } from '@/components/GoogleAttribution';
 import { Button, Chip, ChipGroup } from '@/components/ui';
 import { listLinkedShrines, type ShrineWithStats } from '@/db/repo';
 import { PLACE_KIND_LABEL } from '@/db/types';
@@ -143,8 +144,8 @@ export function ShrineFinder({ top, initialQuery }: { top?: ReactElement; initia
       <View style={styles.screen}>
         {top}
         <Message
-          title="神社を探すには準備が必要です"
-          body="Google Places の APIキーを .env の EXPO_PUBLIC_GOOGLE_PLACES_API_KEY に設定すると使えるようになります。"
+          title="いまは神社を探せません"
+          body={__DEV__ ? '.env の EXPO_PUBLIC_GOOGLE_PLACES_API_KEY に Google Places の APIキーを設定してください。' : 'アプリを最新版に更新して、もう一度お試しください。'}
         />
       </View>
     );
@@ -234,7 +235,7 @@ export function ShrineFinder({ top, initialQuery }: { top?: ReactElement; initia
       refreshing={refreshing}
       onRefresh={showingResults ? undefined : refresh}
       ListEmptyComponent={empty}
-      ListFooterComponent={data.length > 0 ? <Text style={styles.attribution}>Google Maps</Text> : null}
+      ListFooterComponent={data.length > 0 ? <GoogleAttribution places={data} /> : null}
       renderItem={({ item }) => <PlaceCard place={item} shrine={linked.get(item.placeId)} />}
     />
   );
@@ -339,5 +340,4 @@ const styles = StyleSheet.create({
   message: { alignItems: 'center', paddingHorizontal: 16, paddingTop: 40, gap: 12 },
   messageTitle: { fontSize: 16, fontFamily: fonts.bold, color: colors.ink, textAlign: 'center' },
   messageBody: { fontFamily: fonts.regular, fontSize: 13, lineHeight: 20, color: colors.muted, textAlign: 'center' },
-  attribution: { textAlign: 'right', fontFamily: fonts.regular, fontSize: 11, color: colors.muted },
 });

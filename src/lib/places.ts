@@ -9,7 +9,7 @@ const API_KEY = process.env.EXPO_PUBLIC_GOOGLE_PLACES_API_KEY;
 const ANDROID_CERT_SHA1 = process.env.EXPO_PUBLIC_ANDROID_CERT_SHA1;
 const TEXT_ENDPOINT = 'https://places.googleapis.com/v1/places:searchText';
 const NEARBY_ENDPOINT = 'https://places.googleapis.com/v1/places:searchNearby';
-const FIELD_MASK = 'places.id,places.displayName,places.formattedAddress,places.types';
+const FIELD_MASK = 'places.id,places.displayName,places.formattedAddress,places.types,places.attributions';
 const BUNDLE_ID = 'com.koheip.kamimegu';
 
 export const placesSearchEnabled = Boolean(API_KEY);
@@ -20,6 +20,8 @@ export type PlaceCandidate = {
   name: string;
   address: string;
   kind: PlaceKind;
+  // Google 以外の提供元があるときだけ入る。「Google Maps」の表示と並べて出す決まり
+  providers?: string[];
 };
 
 type ApiPlace = {
@@ -27,6 +29,7 @@ type ApiPlace = {
   displayName?: { text?: string };
   formattedAddress?: string;
   types?: string[];
+  attributions?: { provider?: string }[];
   location?: { latitude?: number; longitude?: number };
 };
 
@@ -44,13 +47,20 @@ export function parsePlaces(json: { places?: ApiPlace[] }): PlaceCandidate[] {
     .filter((p): p is ApiPlace & { id: string } => Boolean(p.id && p.displayName?.text))
     .map((p) => {
       const name = p.displayName!.text!;
+      const providers = (p.attributions ?? []).flatMap((a) => (a.provider ? [a.provider] : []));
       return {
         placeId: p.id,
         name,
         address: (p.formattedAddress ?? '').replace(/^日本、(〒\d{3}-\d{4} )?/, ''),
         kind: guessKind(name, p.types),
+        ...(providers.length > 0 && { providers }),
       };
     });
+}
+
+// 検索結果に含まれる、Google 以外の提供元の名前（重複なし）
+export function collectProviders(places: PlaceCandidate[]): string[] {
+  return [...new Set(places.flatMap((p) => p.providers ?? []))];
 }
 
 function requestHeaders(fieldMask: string): Record<string, string> {

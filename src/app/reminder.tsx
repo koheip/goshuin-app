@@ -37,8 +37,9 @@ export default function ReminderScreen() {
   async function save() {
     setSaving(true);
     try {
-      await cancelVisitReminder(notificationId);
+      // 新しい予約ができてから古い予約を消す（通知が許可されず失敗したとき、今の予約を残すため）
       const nextId = enabled ? await scheduleVisitReminder(weekday, hour, minute) : null;
+      await cancelVisitReminder(notificationId);
       await saveReminderPreferences(db, { enabled, weekday, hour, minute, notificationId: nextId });
       setNotificationId(nextId);
       Alert.alert(enabled ? 'リマインダーを設定しました' : 'リマインダーをOFFにしました', enabled ? `毎週${weekdays[weekday - 1]}曜日 ${formatTime(hour, minute)}にお知らせします。` : undefined);

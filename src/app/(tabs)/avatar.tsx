@@ -3,7 +3,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { router, useFocusEffect } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useCallback, useState } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BLESSINGS, type BlessingId, type EquipmentId } from '@/avatar/catalog';
@@ -38,6 +38,8 @@ export default function AvatarScreen() {
     try {
       await saveAvatarPreferences(db, { blessing: selected, equipment });
       setConfirmed(true);
+    } catch (e) {
+      Alert.alert('保存できませんでした', String(e));
     } finally { setSaving(false); }
   }
 
@@ -71,7 +73,6 @@ export default function AvatarScreen() {
         <Pressable accessibilityRole="button" disabled={saving} onPress={save} style={({ pressed }) => [styles.save, pressed && styles.pressed]}>
           <LinearGradient colors={gradients.primary} style={StyleSheet.absoluteFill} /><Ionicons name="sparkles" size={18} color="#FFFFFF" /><Text style={styles.saveText}>{saving ? '保存中…' : 'この神さまと一緒にめぐる'}</Text>
         </Pressable>
-        <Text style={styles.note}>装備管理は表から外し、参拝で出会った神さまを選ぶ仕組みに整理しました。</Text>
       </ScrollView>
       <Modal visible={confirmed} transparent animationType="fade" onRequestClose={() => setConfirmed(false)}>
         <View style={styles.modalBackdrop}>
@@ -106,7 +107,7 @@ const styles = StyleSheet.create({
   topbar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }, back: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,.82)', borderWidth: 1, borderColor: colors.line }, topTitle: { fontFamily: fonts.bold, fontSize: 14, color: colors.ink },
   hero: { alignItems: 'center', padding: 20, borderRadius: 28, backgroundColor: 'rgba(255,255,255,.78)', borderWidth: 1, borderColor: colors.line, boxShadow: glow.soft }, kicker: { fontFamily: fonts.bold, fontSize: 9, letterSpacing: 1.8, color: colors.violet }, titleRow: { marginTop: 3, flexDirection: 'row', alignItems: 'center', gap: 5 }, title: { fontFamily: fonts.displayHeavy, fontSize: 27, color: colors.ink }, subtitle: { marginTop: 5, marginBottom: 2, fontFamily: fonts.regular, fontSize: 11, color: colors.muted, textAlign: 'center' }, deity: { marginTop: -8, fontFamily: fonts.bold, fontSize: 11, color: colors.accentOnTint },
   list: { gap: 8 }, option: { minHeight: 84, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', gap: 10, borderRadius: 21, backgroundColor: 'rgba(255,255,255,.78)', borderWidth: 1.5, borderColor: colors.line }, optionActive: { borderColor: colors.accent, backgroundColor: colors.accentTint }, optionLocked: { backgroundColor: 'rgba(255,255,255,.55)' }, hiddenGuide: { width: 68, height: 68, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.track, borderWidth: 1, borderColor: colors.lineStrong }, optionCopy: { flex: 1 }, optionName: { fontFamily: fonts.bold, fontSize: 14, color: colors.ink }, optionMeta: { marginTop: 3, fontFamily: fonts.regular, fontSize: 10, color: colors.muted },
-  save: { minHeight: 52, overflow: 'hidden', borderRadius: 26, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, boxShadow: glow.pink }, saveText: { fontFamily: fonts.bold, fontSize: 13, color: '#FFFFFF' }, pressed: { opacity: .82, transform: [{ scale: .98 }] }, note: { paddingHorizontal: 8, fontFamily: fonts.regular, fontSize: 9, lineHeight: 15, textAlign: 'center', color: colors.muted },
+  save: { minHeight: 52, overflow: 'hidden', borderRadius: 26, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, boxShadow: glow.pink }, saveText: { fontFamily: fonts.bold, fontSize: 13, color: '#FFFFFF' }, pressed: { opacity: .82, transform: [{ scale: .98 }] },
   modalBackdrop: { flex: 1, padding: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(49,31,86,.48)' },
   confirmCard: { width: '100%', maxWidth: 390, overflow: 'hidden', alignItems: 'center', padding: 22, paddingTop: 26, borderRadius: 32, borderWidth: 2, borderColor: 'rgba(255,255,255,.95)', boxShadow: glow.strong },
   orbit: { position: 'absolute', borderWidth: 1, opacity: .22, transform: [{ rotate: '-14deg' }] }, orbitOne: { width: 280, height: 92, top: 145, borderRadius: 140 }, orbitTwo: { width: 230, height: 72, top: 160, borderRadius: 115, transform: [{ rotate: '18deg' }] },

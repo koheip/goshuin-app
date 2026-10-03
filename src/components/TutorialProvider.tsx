@@ -9,8 +9,8 @@ import { isTutorialComplete, setTutorialComplete } from '@/db/repo';
 import { colors, fonts, glow } from '@/theme';
 
 const slides = [
-  { chapter: '一', title: '神さまって、\n意外と近くにいる。', body: 'KAMI MEGUは、神社との出会いと\nあなたの参拝を残す巡礼ノートです。', label: 'WELCOME TO KAMI MEGU', icon: 'sparkles' as const, image: require('../../assets/kami-megu-home-hero.png'), guideTitle: 'まずは、めぐりを始めましょう', guideBody: '画面下のメニューから、いつでも地図・図鑑・記録へ移動できます。', guideIcon: 'heart' as const },
-  { chapter: '二', title: '近くの神社へ\n会いにいこう', body: '地図を動かして鳥居をタップ。\n気になる神社の由緒や御祭神を確認できます。', label: 'FIND YOUR SHRINE', icon: 'map' as const, image: require('../../assets/blessing-amaterasu.png'), guideTitle: '地図は指で動かせます', guideBody: '鳥居マーカーをタップすると詳細を表示。距離ボタンで近くの神社も探せます。', guideIcon: 'hand-left' as const },
+  { chapter: '一', title: '神さまって、\n意外と近くにいる。', body: 'KAMI MEGUは、神社との出会いと\nあなたの参拝を残す巡礼ノートです。', label: 'WELCOME TO KAMI MEGU', icon: 'sparkles' as const, image: require('../../assets/kami-megu-home-hero.png'), guideTitle: 'まずは、めぐりを始めましょう', guideBody: '画面下のメニューから、いつでも神社さがし・記録・図鑑へ移動できます。', guideIcon: 'heart' as const },
+  { chapter: '二', title: '近くの神社へ\n会いにいこう', body: '「めぐる」タブで、今いる場所の近くにある\n神社・お寺を近い順に探せます。', label: 'FIND YOUR SHRINE', icon: 'search' as const, image: require('../../assets/blessing-amaterasu.png'), guideTitle: '名前でも探せます', guideBody: '気になる場所は Google マップで開けます。「参拝を記録」から、そのまま記録も始められます。', guideIcon: 'navigate' as const },
   { chapter: '三', title: '参拝の思い出を\nそっと残そう', body: '参拝した日、写真、御朱印、ひとこと。\nその日の気持ちまで一緒に記録できます。', label: 'KEEP YOUR MEMORY', icon: 'camera' as const, image: require('../../assets/blessing-okuninushi.png'), guideTitle: '「参拝を記録」から残せます', guideBody: '御朱印がない日も大丈夫。写真だけ、メモだけでも参拝記録になります。', guideIcon: 'add-circle' as const },
   { chapter: '四', title: 'ご縁がつながり\n神話がひらく', body: '参拝を重ねると神さまや神社の物語が解放。\nあなただけの図鑑が育っていきます。', label: 'DISCOVER THE MYTHS', icon: 'book' as const, image: require('../../assets/kami-catalog-amaterasu-front-v1.png'), guideTitle: '解放演出を見逃さないで', guideBody: '新しいご縁が結ばれると特別な演出が発生。図鑑で神話を読み返せます。', guideIcon: 'lock-open' as const },
 ];

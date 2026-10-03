@@ -17,6 +17,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { PlaceMark } from '@/components/shrine';
+import { GoogleAttribution } from '@/components/GoogleAttribution';
 import { Button, Chip, ChipGroup, Stepper } from '@/components/ui';
 import { createShrine, listLinkedShrines, searchShrines, type ShrineWithStats } from '@/db/repo';
 import { PLACE_KIND_LABEL, type PlaceKind } from '@/db/types';
@@ -185,7 +186,7 @@ export default function SelectShrineScreen() {
               onPress={() => selectNew({ name: place.name, kind: place.kind, placeId: place.placeId })}
             />
           ))}
-          <Text style={styles.attribution}>Google Maps</Text>
+          <GoogleAttribution places={googleResults} style={styles.attribution} />
         </View>
       )}
       {googleResults?.length === 0 && <Text style={styles.hint}>Google では見つかりませんでした</Text>}
@@ -363,5 +364,5 @@ const styles = StyleSheet.create({
     borderTopColor: colors.line,
     backgroundColor: colors.paper,
   },
-  attribution: { marginTop: 6, textAlign: 'right', fontFamily: fonts.regular, fontSize: 11, color: colors.muted },
+  attribution: { marginTop: 6 },
 });

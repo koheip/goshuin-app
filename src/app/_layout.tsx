@@ -15,9 +15,16 @@ import { KamiLoadingScreen } from '@/components/KamiLoadingScreen';
 import { TutorialProvider } from '@/components/TutorialProvider';
 import { HeaderBackButton } from '@/components/ui';
 import { migrateDbIfNeeded } from '@/db/migrate';
+import { useVisitReminderTap } from '@/notifications/reminder';
 import { colors, fonts } from '@/theme';
 
 SplashScreen.preventAutoHideAsync();
+
+// 画面のスタックができてから、通知からの移動を受け付ける
+function ReminderTapObserver() {
+  useVisitReminderTap();
+  return null;
+}
 
 export default function RootLayout() {
   const [loaded, error] = useFonts({
@@ -65,9 +72,11 @@ export default function RootLayout() {
         <Stack.Screen name="nearby" options={{ title: '近くの神社・お寺' }} />
         <Stack.Screen name="reminder" options={{ headerShown: false }} />
         <Stack.Screen name="settings" options={{ headerShown: false }} />
+        <Stack.Screen name="terms" options={{ title: '利用規約' }} />
         <Stack.Screen name="privacy" options={{ title: 'プライバシーポリシー' }} />
         <Stack.Screen name="licenses" options={{ title: 'ライセンス' }} />
       </Stack>
+      <ReminderTapObserver />
       </TutorialProvider>
       </SQLiteProvider>
       {showLoading && <KamiLoadingScreen onFinish={finishLoading} />}

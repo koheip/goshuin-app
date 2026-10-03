@@ -460,24 +460,14 @@ export async function getEntry(db: SQLiteDatabase, goshuinId: string): Promise<G
   return db.getFirstAsync<GoshuinEntry>(`${ENTRY_SELECT} WHERE g.id = ?`, goshuinId);
 }
 
-// 御朱印を1枚削除する。参拝に御朱印が残らなければ参拝の記録も消す
+// 御朱印を1枚削除する。参拝の記録（日付やメモ）は、御朱印がなくなっても残す
 export async function deleteGoshuin(db: SQLiteDatabase, goshuinId: string): Promise<string | null> {
-  const row = await db.getFirstAsync<{ visitId: string; imageFile: string }>(
-    'SELECT visit_id AS visitId, image_file AS imageFile FROM goshuin WHERE id = ?',
+  const row = await db.getFirstAsync<{ imageFile: string }>(
+    'SELECT image_file AS imageFile FROM goshuin WHERE id = ?',
     goshuinId,
   );
   if (!row) return null;
-  await db.withTransactionAsync(async () => {
-    await db.runAsync('DELETE FROM goshuin WHERE id = ?', goshuinId);
-    await db.runAsync(
-      `DELETE FROM visits WHERE id = ?
-       AND NOT EXISTS (SELECT 1 FROM goshuin WHERE visit_id = ?)
-       AND NOT EXISTS (SELECT 1 FROM visit_photos WHERE visit_id = ?)`,
-      row.visitId,
-      row.visitId,
-      row.visitId,
-    );
-  });
+  await db.runAsync('DELETE FROM goshuin WHERE id = ?', goshuinId);
   return row.imageFile;
 }
 

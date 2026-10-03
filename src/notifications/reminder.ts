@@ -1,4 +1,6 @@
 import * as Notifications from 'expo-notifications';
+import { router } from 'expo-router';
+import { useEffect } from 'react';
 import { Platform } from 'react-native';
 
 Notifications.setNotificationHandler({
@@ -42,6 +44,22 @@ export async function scheduleVisitReminder(weekday: number, hour: number, minut
       channelId: 'visit-reminders',
     },
   });
+}
+
+// リマインダーの通知を押してアプリを開いたとき、「めぐる」タブを開く
+export function useVisitReminderTap() {
+  useEffect(() => {
+    if (Platform.OS === 'web') return;
+    function open(response: Notifications.NotificationResponse | null) {
+      if (response?.notification.request.content.data?.kind !== 'visit-reminder') return;
+      router.navigate('/map');
+      // 次にこの画面が作られたとき、同じ通知でもう一度開かないようにする
+      Notifications.clearLastNotificationResponseAsync().catch(() => {});
+    }
+    open(Notifications.getLastNotificationResponse());
+    const subscription = Notifications.addNotificationResponseReceivedListener(open);
+    return () => subscription.remove();
+  }, []);
 }
 
 export async function cancelVisitReminder(notificationId: string | null): Promise<void> {

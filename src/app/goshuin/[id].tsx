@@ -33,7 +33,7 @@ export default function GoshuinDetailScreen() {
   );
 
   function confirmDelete() {
-    Alert.alert('この御朱印を削除しますか？', '端末から写真も削除され、元に戻せません。', [
+    Alert.alert('この御朱印を削除しますか？', '端末から写真も削除され、元に戻せません。参拝の記録は残ります。', [
       { text: 'キャンセル', style: 'cancel' },
       {
         text: '削除',

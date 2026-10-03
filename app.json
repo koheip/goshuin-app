@@ -12,6 +12,10 @@
       "bundleIdentifier": "com.koheip.kamimegu",
       "config": {
         "usesNonExemptEncryption": false
+      },
+      "infoPlist": {
+        "CFBundleDevelopmentRegion": "ja",
+        "CFBundleLocalizations": ["ja"]
       }
     },
     "android": {
